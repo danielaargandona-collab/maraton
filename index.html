@@ -11,21 +11,18 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Open Sans', sans-serif;
-      background: #f5f5f5;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      padding: 24px 16px;
-    }
+    body { font-family: 'Open Sans', sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; justify-content: center; padding: 24px 16px; }
     #root { width: 100%; max-width: 760px; }
     button { font-family: 'Open Sans', sans-serif; }
+    .task-card { border-radius: 7px; padding: 5px 7px; font-size: 11px; font-weight: 500; user-select: none; transition: all 0.15s; display: flex; flex-direction: column; gap: 2px; font-family: 'Open Sans', sans-serif; }
+    .task-card[draggable="true"] { cursor: grab; }
+    .task-card[draggable="true"]:active { cursor: grabbing; opacity: 0.5; }
+    .drop-zone { min-height: 80px; border-radius: 10px; padding: 8px 6px; transition: all 0.15s; display: flex; flex-direction: column; gap: 4px; }
+    .drop-zone.drag-over { border: 2px dashed #6366F1 !important; background: #EEF2FF !important; }
   </style>
 </head>
 <body>
   <div id="root"></div>
-
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
@@ -46,10 +43,7 @@
       try {
         await fetch(`${SUPABASE_URL}/rest/v1/tracker`, {
           method: "POST",
-          headers: {
-            apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
-            "Content-Type": "application/json", Prefer: "resolution=merge-duplicates"
-          },
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
           body: JSON.stringify({ key, value: JSON.stringify(value) })
         });
       } catch {}
@@ -94,7 +88,6 @@
     ];
 
     const DAYS = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
-
     const TYPE_CFG = {
       run:      { bg:"#EEF2FF", color:"#3730A3", border:"#A5B4FC", icon:"🏃", label:"Correr" },
       cross:    { bg:"#ECFDF5", color:"#065F46", border:"#6EE7B7", icon:"🚴", label:"Cross" },
@@ -105,27 +98,33 @@
       half:     { bg:"#FDF2F8", color:"#9D174D", border:"#F9A8D4", icon:"🏅", label:"Media Maratón" },
     };
 
+    function mk(id, type, label) { return { id, type, label }; }
+
     function buildWeek(wi) {
       const row = RAW_PLAN[wi];
       const days = [];
       for (let d = 0; d < 7; d++) {
         const tasks = [];
-        if (d === 1 || d === 4) tasks.push({ id:`w${wi}d${d}pilates`, type:"pilates", label:"Pilates", movable:true });
         const val = row[d];
-        if (d === 0) tasks.push({ id:`w${wi}d${d}rest`, type:"rest", label:"Descanso", movable:true });
-        else if (d === 4) tasks.push({ id:`w${wi}d${d}rest`, type:"rest", label:"Descanso", movable:true });
-        else if (d === 1 || d === 2 || d === 3) {
-          if (val && val[0]) tasks.push({ id:`w${wi}d${d}run`, type:"run", label:`Correr ${adjustDist(val[0])} km`, movable:true });
+        if (d === 0) { tasks.push(mk(`w${wi}d${d}rest`, "rest", "Descanso")); }
+        else if (d === 1) {
+          tasks.push(mk(`w${wi}d${d}pilates`, "pilates", "Pilates"));
+          if (val && val[0]) tasks.push(mk(`w${wi}d${d}run`, "run", `Correr ${adjustDist(val[0])} km`));
+        } else if (d === 2) {
+          if (val && val[0]) tasks.push(mk(`w${wi}d${d}run`, "run", `Correr ${adjustDist(val[0])} km`));
+        } else if (d === 3) {
+          if (val && val[0]) tasks.push(mk(`w${wi}d${d}run`, "run", `Correr ${adjustDist(val[0])} km`));
+        } else if (d === 4) {
+          tasks.push(mk(`w${wi}d${d}pilates`, "pilates", "Pilates"));
+          tasks.push(mk(`w${wi}d${d}rest`, "rest", "Descanso"));
         } else if (d === 5) {
-          if (val && val[0]) tasks.push({ id:`w${wi}d${d}run`, type:"run", label:`Correr ${adjustDist(val[0])} km`, movable:true });
-          else tasks.push({ id:`w${wi}d${d}rest`, type:"rest", label:"Descanso", movable:true });
+          if (val && val[0]) tasks.push(mk(`w${wi}d${d}run`, "run", `Correr ${adjustDist(val[0])} km`));
+          else tasks.push(mk(`w${wi}d${d}rest`, "rest", "Descanso"));
         } else if (d === 6) {
           const s = row[6];
-          if (s === "cross") {
-            const km = val && val[0] ? adjustDist(val[0]) : null;
-            tasks.push({ id:`w${wi}d${d}cross`, type:"cross", label: km ? `Cross ${km} km` : "Cross-training", movable:true });
-          } else if (s === "half") tasks.push({ id:`w${wi}d${d}race`, type:"half", label:"Media Maratón", movable:true });
-          else if (s === "marathon") tasks.push({ id:`w${wi}d${d}race`, type:"marathon", label:"¡Maratón!", movable:true });
+          if (s === "cross") { const km = val && val[0] ? adjustDist(val[0]) : null; tasks.push(mk(`w${wi}d${d}cross`, "cross", km ? `Cross ${km} km` : "Cross-training")); }
+          else if (s === "half") tasks.push(mk(`w${wi}d${d}race`, "half", "Media Maratón"));
+          else if (s === "marathon") tasks.push(mk(`w${wi}d${d}race`, "marathon", "¡Maratón!"));
         }
         days.push(tasks);
       }
@@ -138,26 +137,24 @@
       const [plan, setPlan] = useState(INITIAL_PLAN);
       const [done, setDone] = useState({});
       const [activeWeek, setActiveWeek] = useState(CURRENT_WEEK - 1);
-      const [dragging, setDragging] = useState(null);
-      const [dragOver, setDragOver] = useState(null);
       const [status, setStatus] = useState("loading");
-      const dragRef = useRef(null);
+      const dragSrc = useRef(null);
       const saveTimer = useRef(null);
 
       useEffect(() => {
         (async () => {
-          const [savedPlan, savedDone] = await Promise.all([dbGet("plan"), dbGet("done")]);
-          if (savedPlan) setPlan(savedPlan);
-          if (savedDone) setDone(savedDone);
+          const [sp, sd] = await Promise.all([dbGet("plan"), dbGet("done")]);
+          if (sp) setPlan(sp);
+          if (sd) setDone(sd);
           setStatus("ready");
         })();
       }, []);
 
-      const save = (newPlan, newDone) => {
+      const save = (np, nd) => {
         setStatus("saving");
         clearTimeout(saveTimer.current);
         saveTimer.current = setTimeout(async () => {
-          await Promise.all([dbSet("plan", newPlan), dbSet("done", newDone)]);
+          await Promise.all([dbSet("plan", np), dbSet("done", nd)]);
           setStatus("saved");
           setTimeout(() => setStatus("ready"), 2000);
         }, 800);
@@ -169,22 +166,11 @@
         save(plan, next);
       };
 
-      const handleDragStart = (wi, di, ti) => (e) => {
-        dragRef.current = { wi, di, ti };
-        setDragging({ wi, di, ti });
-        e.dataTransfer.effectAllowed = "move";
-      };
-      const handleDragEnd = () => { setDragging(null); setDragOver(null); dragRef.current = null; };
-      const handleDrop = (wi, di) => (e) => {
-        e.preventDefault();
-        const src = dragRef.current;
-        if (!src || (src.wi === wi && src.di === di)) { setDragOver(null); return; }
-        const next = plan.map(w => w.map(d => [...d]));
-        const [task] = next[src.wi][src.di].splice(src.ti, 1);
-        next[wi][di] = [...next[wi][di], task];
-        setPlan(next);
-        save(next, done);
-        setDragOver(null);
+      const fmtRange = (wi) => {
+        const s = new Date(PLAN_START); s.setDate(s.getDate() + wi * 7);
+        const e = new Date(s); e.setDate(e.getDate() + 6);
+        const fmt = d => d.toLocaleDateString("es-CL", { day:"numeric", month:"short" });
+        return `${fmt(s)} – ${fmt(e)}`;
       };
 
       const today = new Date();
@@ -194,19 +180,32 @@
       const overallPct = totalTasks ? Math.round((totalChecked / totalTasks) * 100) : 0;
       const wTasks = plan[activeWeek].flat();
       const wPct = wTasks.length ? Math.round((wTasks.filter(t => done[t.id]).length / wTasks.length) * 100) : 0;
-      const weeksCompleted = plan.filter((wk, wi) => {
-        const t = wk.flat();
-        return t.length > 0 && t.every(t2 => done[t2.id]) && wi < CURRENT_WEEK - 1;
-      }).length;
-
-      const fmtRange = (wi) => {
-        const s = new Date(PLAN_START); s.setDate(s.getDate() + wi * 7);
-        const e = new Date(s); e.setDate(e.getDate() + 6);
-        const fmt = d => d.toLocaleDateString("es-CL", { day:"numeric", month:"short" });
-        return `${fmt(s)} – ${fmt(e)}`;
-      };
-
+      const weeksCompleted = plan.filter((wk, wi) => { const t = wk.flat(); return t.length > 0 && t.every(t2 => done[t2.id]) && wi < CURRENT_WEEK - 1; }).length;
       const statusLabel = { loading:"Cargando…", saving:"Guardando…", saved:"✓ Guardado", ready:"" }[status];
+
+      const onDragStart = (wi, di, ti) => (e) => {
+        dragSrc.current = { wi, di, ti };
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", `${wi},${di},${ti}`);
+        e.currentTarget.style.opacity = "0.4";
+      };
+      const onDragEnd = (e) => { e.currentTarget.style.opacity = "1"; };
+      const onDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; e.currentTarget.classList.add("drag-over"); };
+      const onDragLeave = (e) => { if (!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.classList.remove("drag-over"); };
+      const onDrop = (wi, di) => (e) => {
+        e.preventDefault();
+        e.currentTarget.classList.remove("drag-over");
+        const raw = e.dataTransfer.getData("text/plain");
+        let src = dragSrc.current;
+        if (!src && raw) { const p = raw.split(",").map(Number); src = { wi: p[0], di: p[1], ti: p[2] }; }
+        if (!src || (src.wi === wi && src.di === di)) return;
+        const next = plan.map(w => w.map(d => [...d]));
+        const [task] = next[src.wi][src.di].splice(src.ti, 1);
+        next[wi][di] = [...next[wi][di], task];
+        setPlan(next);
+        save(next, done);
+        dragSrc.current = null;
+      };
 
       if (status === "loading") return (
         <div style={{ padding:60, textAlign:"center", color:"#6B7280", fontFamily:"'Open Sans', sans-serif" }}>
@@ -217,7 +216,6 @@
 
       return (
         <div style={{ fontFamily:"'Open Sans', sans-serif", color:"#111", padding:"8px 0", maxWidth:720 }}>
-
           <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:16, padding:"20px 22px", marginBottom:14, display:"flex", flexDirection:"column", gap:14 }}>
             <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
               <div>
@@ -235,7 +233,6 @@
                 {statusLabel ? <span style={{ fontSize:11, color: status==="saved" ? "#059669" : "#6B7280" }}>{statusLabel}</span> : null}
               </div>
             </div>
-
             <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10 }}>
               {[
                 { icon:"📆", val:`Semana ${CURRENT_WEEK}`, sub: fmtRange(CURRENT_WEEK-1), accent:"#6366F1", abg:"#EEF2FF", aborder:"#A5B4FC" },
@@ -249,7 +246,6 @@
                 </div>
               ))}
             </div>
-
             <div>
               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
                 <span style={{ fontSize:12, color:"#6B7280", fontWeight:500 }}>Progreso total del plan</span>
@@ -274,10 +270,7 @@
                   background: full ? "#ECFDF5" : isActive ? "#EEF2FF" : "#fff",
                   color: full ? "#065F46" : isActive ? "#4338CA" : "#6B7280",
                   fontWeight: isCurrent ? 700 : 400, transition:"all 0.15s",
-                  fontFamily:"'Open Sans', sans-serif",
-                }}>
-                  S{wi+1}{isCurrent ? " ●" : full ? " ✓" : ""}
-                </button>
+                }}>S{wi+1}{isCurrent ? " ●" : full ? " ✓" : ""}</button>
               );
             })}
           </div>
@@ -295,54 +288,43 @@
 
           <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:6 }}>
             {DAYS.map((day, di) => {
-              const isOver = dragOver && dragOver.wi === activeWeek && dragOver.di === di;
               const tasks = plan[activeWeek][di] || [];
               const dayDone = tasks.length > 0 && tasks.every(t => done[t.id]);
               const dayDate = new Date(PLAN_START);
               dayDate.setDate(dayDate.getDate() + activeWeek * 7 + di);
-              const dayNum = dayDate.getDate();
-              const dayMonth = dayDate.toLocaleDateString("es-CL", { month:"short" });
               return (
                 <div key={di}
-                  onDragOver={e => { e.preventDefault(); setDragOver({ wi:activeWeek, di }); }}
-                  onDrop={handleDrop(activeWeek, di)}
-                  onDragLeave={() => setDragOver(null)}
-                  style={{
-                    minHeight:80, borderRadius:10,
-                    border: isOver ? "2px dashed #6366F1" : dayDone ? "1px solid #6EE7B7" : "1px solid #E5E7EB",
-                    background: isOver ? "#EEF2FF" : dayDone ? "#F0FDF4" : "#fff",
-                    padding:"8px 6px", transition:"all 0.15s", display:"flex", flexDirection:"column", gap:4,
-                  }}
+                  className="drop-zone"
+                  onDragOver={onDragOver}
+                  onDragLeave={onDragLeave}
+                  onDrop={onDrop(activeWeek, di)}
+                  style={{ border: dayDone ? "1px solid #6EE7B7" : "1px solid #E5E7EB", background: dayDone ? "#F0FDF4" : "#fff" }}
                 >
                   <div style={{ textAlign:"center", marginBottom:2 }}>
                     <div style={{ fontSize:11, fontWeight:600, color: dayDone ? "#059669" : "#6B7280" }}>{day}{dayDone ? " ✓" : ""}</div>
-                    <div style={{ fontSize:10, color:"#9CA3AF", lineHeight:1.2 }}>{dayNum} {dayMonth}</div>
+                    <div style={{ fontSize:10, color:"#9CA3AF" }}>{dayDate.getDate()} {dayDate.toLocaleDateString("es-CL",{month:"short"})}</div>
                   </div>
                   {tasks.map((task, ti) => {
                     const cfg = TYPE_CFG[task.type] || TYPE_CFG.rest;
-                    const isDraggingThis = dragging && dragging.wi===activeWeek && dragging.di===di && dragging.ti===ti;
                     const isDone = done[task.id];
                     return (
                       <div key={task.id}
-                        draggable={task.movable}
-                        onDragStart={task.movable ? handleDragStart(activeWeek, di, ti) : undefined}
-                        onDragEnd={task.movable ? handleDragEnd : undefined}
-                        onClick={() => toggleDone(task.id)}
+                        className="task-card"
+                        draggable="true"
+                        onDragStart={onDragStart(activeWeek, di, ti)}
+                        onDragEnd={onDragEnd}
                         style={{
                           background: isDone ? "#F0FDF4" : cfg.bg,
                           color: isDone ? "#065F46" : cfg.color,
                           border: `1px solid ${isDone ? "#6EE7B7" : cfg.border}`,
-                          borderRadius:7, padding:"5px 7px", fontSize:11, fontWeight:500,
-                          cursor: task.movable ? "grab" : "pointer",
-                          opacity: isDraggingThis ? 0.3 : 1,
-                          userSelect:"none", transition:"all 0.15s",
-                          display:"flex", flexDirection:"column", gap:2,
-                          fontFamily:"'Open Sans', sans-serif",
                         }}
                       >
                         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:3 }}>
                           <span style={{ fontSize:13 }}>{cfg.icon}</span>
-                          <span style={{ fontSize:13, opacity:0.7 }}>{isDone ? "✓" : "○"}</span>
+                          <span
+                            onClick={(e) => { e.stopPropagation(); toggleDone(task.id); }}
+                            style={{ fontSize:13, opacity:0.7, cursor:"pointer" }}
+                          >{isDone ? "✓" : "○"}</span>
                         </div>
                         <div style={{ fontSize:11, lineHeight:1.3, wordBreak:"break-word" }}>{task.label}</div>
                       </div>
@@ -361,14 +343,13 @@
             ))}
           </div>
           <p style={{ fontSize:11, color:"#9CA3AF", marginTop:6, marginBottom:0 }}>
-            Arrastra para mover · Toca para marcar como completado
+            Arrastra para mover · Toca ○ para marcar como completado
           </p>
         </div>
       );
     }
 
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
   </script>
 </body>
 </html>
