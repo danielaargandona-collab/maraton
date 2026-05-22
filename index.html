@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maratón Viña del Mar 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600&display=swap" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+    #root { width: 100%; max-width: 760px; }
+    button { font-family: 'Open Sans', sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const SUPABASE_URL = "https://ssrvbprgkwaoxzrvpwym.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzcnZicHJna3dhb3h6cnZwd3ltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzOTYzNzAsImV4cCI6MjA5NDk3MjM3MH0.NMfB1mJRJEdBRqynYR4aBq1non82o9htoIi2jKeHsf4";
+
+    async function dbGet(key) {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/tracker?key=eq.${key}&select=value`, {
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+        });
+        const d = await r.json();
+        return d && d[0] ? JSON.parse(d[0].value) : null;
+      } catch { return null; }
+    }
+
+    async function dbSet(key, value) {
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/tracker`, {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
+            "Content-Type": "application/json", Prefer: "resolution=merge-duplicates"
+          },
+          body: JSON.stringify({ key, value: JSON.stringify(value) })
+        });
+      } catch {}
+    }
+
+    const RACE_DATE = new Date("2026-06-28");
+    const CURRENT_WEEK = 4;
+    const TODAY = new Date();
+    const THIS_MONDAY = new Date(TODAY);
+    THIS_MONDAY.setDate(TODAY.getDate() - ((TODAY.getDay() + 6) % 7));
+    const PLAN_START = new Date(THIS_MONDAY);
+    PLAN_START.setDate(THIS_MONDAY.getDate() - (CURRENT_WEEK - 1) * 7);
+
+    function adjustDist(d) {
+      if (d === null) return null;
+      const dec = d % 1;
+      if (dec === 0) return d;
+      if (dec < 0.4) return Math.floor(d);
+      if (dec <= 0.45) return Math.floor(d) + 0.5;
+      return Math.ceil(d);
+    }
+
+    const RAW_PLAN = [
+      [null,[4.8],[4.8],[4.8],null,[9.7],"cross"],
+      [null,[4.8],[4.8],[4.8],null,[11.3],"cross"],
+      [null,[4.8],[6.4],[4.8],null,[8.1],"cross"],
+      [null,[4.8],[6.4],[4.8],null,[14.5],"cross"],
+      [null,[4.8],[8.1],[4.8],null,[16.1],"cross"],
+      [null,[4.8],[8.1],[4.8],null,[11.3],"cross"],
+      [null,[4.8],[9.7],[4.8],null,[19.3],"cross"],
+      [null,[4.8],[9.7],[4.8],null,null,"half"],
+      [null,[4.8],[11.3],[6.4],null,[16.1],"cross"],
+      [null,[4.8],[11.3],[6.4],null,[24.1],"cross"],
+      [null,[6.4],[12.9],[6.4],null,[25.7],"cross"],
+      [null,[6.4],[12.9],[8.1],null,[19.3],"cross"],
+      [null,[6.4],[14.5],[8.1],null,[29],"cross"],
+      [null,[8.1],[14.5],[8.1],null,[22.5],"cross"],
+      [null,[8.1],[16.1],[8.1],null,[32.2],"cross"],
+      [null,[8.1],[12.9],[6.4],null,[19.3],"cross"],
+      [null,[6.4],[9.7],[4.8],null,[12.9],"cross"],
+      [null,[4.8],[6.4],[3.2],null,null,"marathon"],
+    ];
+
+    const DAYS = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+
+    const TYPE_CFG = {
+      run:      { bg:"#EEF2FF", color:"#3730A3", border:"#A5B4FC", icon:"🏃", label:"Correr" },
+      cross:    { bg:"#ECFDF5", color:"#065F46", border:"#6EE7B7", icon:"🚴", label:"Cross" },
+      race:     { bg:"#FDF2F8", color:"#9D174D", border:"#F9A8D4", icon:"🏅", label:"Carrera" },
+      marathon: { bg:"#F5F3FF", color:"#5B21B6", border:"#C4B5FD", icon:"🏆", label:"Maratón" },
+      pilates:  { bg:"#FFF7ED", color:"#92400E", border:"#FCD34D", icon:"🧘", label:"Pilates" },
+      rest:     { bg:"#F9FAFB", color:"#6B7280", border:"#E5E7EB", icon:"💤", label:"Descanso" },
+      half:     { bg:"#FDF2F8", color:"#9D174D", border:"#F9A8D4", icon:"🏅", label:"Media Maratón" },
+    };
+
+    function buildWeek(wi) {
+      const row = RAW_PLAN[wi];
+      const days = [];
+      for (let d = 0; d < 7; d++) {
+        const tasks = [];
+        if (d === 1 || d === 4) tasks.push({ id:`w${wi}d${d}pilates`, type:"pilates", label:"Pilates", movable:false });
+        const val = row[d];
+        if (d === 0) tasks.push({ id:`w${wi}d${d}rest`, type:"rest", label:"Descanso", movable:false });
+        else if (d === 4) tasks.push({ id:`w${wi}d${d}rest`, type:"rest", label:"Descanso", movable:false });
+        else if (d === 1 || d === 2 || d === 3) {
+          if (val && val[0]) tasks.push({ id:`w${wi}d${d}run`, type:"run", label:`Correr ${adjustDist(val[0])} km`, movable:true });
+        } else if (d === 5) {
+          if (val && val[0]) tasks.push({ id:`w${wi}d${d}run`, type:"run", label:`Correr ${adjustDist(val[0])} km`, movable:true });
+          else tasks.push({ id:`w${wi}d${d}rest`, type:"rest", label:"Descanso", movable:false });
+        } else if (d === 6) {
+          const s = row[6];
+          if (s === "cross") {
+            const km = val && val[0] ? adjustDist(val[0]) : null;
+            tasks.push({ id:`w${wi}d${d}cross`, type:"cross", label: km ? `Cross ${km} km` : "Cross-training", movable:true });
+          } else if (s === "half") tasks.push({ id:`w${wi}d${d}race`, type:"half", label:"Media Maratón", movable:true });
+          else if (s === "marathon") tasks.push({ id:`w${wi}d${d}race`, type:"marathon", label:"¡Maratón!", movable:true });
+        }
+        days.push(tasks);
+      }
+      return days;
+    }
+
+    const INITIAL_PLAN = RAW_PLAN.map((_, wi) => buildWeek(wi));
+
+    function App() {
+      const [plan, setPlan] = useState(INITIAL_PLAN);
+      const [done, setDone] = useState({});
+      const [activeWeek, setActiveWeek] = useState(CURRENT_WEEK - 1);
+      const [dragging, setDragging] = useState(null);
+      const [dragOver, setDragOver] = useState(null);
+      const [status, setStatus] = useState("loading");
+      const dragRef = useRef(null);
+      const saveTimer = useRef(null);
+
+      useEffect(() => {
+        (async () => {
+          const [savedPlan, savedDone] = await Promise.all([dbGet("plan"), dbGet("done")]);
+          if (savedPlan) setPlan(savedPlan);
+          if (savedDone) setDone(savedDone);
+          setStatus("ready");
+        })();
+      }, []);
+
+      const save = (newPlan, newDone) => {
+        setStatus("saving");
+        clearTimeout(saveTimer.current);
+        saveTimer.current = setTimeout(async () => {
+          await Promise.all([dbSet("plan", newPlan), dbSet("done", newDone)]);
+          setStatus("saved");
+          setTimeout(() => setStatus("ready"), 2000);
+        }, 800);
+      };
+
+      const toggleDone = (id) => {
+        const next = { ...done, [id]: !done[id] };
+        setDone(next);
+        save(plan, next);
+      };
+
+      const handleDragStart = (wi, di, ti) => (e) => {
+        dragRef.current = { wi, di, ti };
+        setDragging({ wi, di, ti });
+        e.dataTransfer.effectAllowed = "move";
+      };
+      const handleDragEnd = () => { setDragging(null); setDragOver(null); dragRef.current = null; };
+      const handleDrop = (wi, di) => (e) => {
+        e.preventDefault();
+        const src = dragRef.current;
+        if (!src || (src.wi === wi && src.di === di)) { setDragOver(null); return; }
+        const next = plan.map(w => w.map(d => [...d]));
+        const [task] = next[src.wi][src.di].splice(src.ti, 1);
+        next[wi][di] = [...next[wi][di], task];
+        setPlan(next);
+        save(next, done);
+        setDragOver(null);
+      };
+
+      const today = new Date();
+      const daysLeft = Math.max(0, Math.ceil((RACE_DATE - today) / 86400000));
+      const totalTasks = plan.flat(2).length;
+      const totalChecked = plan.flat(2).filter(t => done[t.id]).length;
+      const overallPct = totalTasks ? Math.round((totalChecked / totalTasks) * 100) : 0;
+      const wTasks = plan[activeWeek].flat();
+      const wPct = wTasks.length ? Math.round((wTasks.filter(t => done[t.id]).length / wTasks.length) * 100) : 0;
+      const weeksCompleted = plan.filter((wk, wi) => {
+        const t = wk.flat();
+        return t.length > 0 && t.every(t2 => done[t2.id]) && wi < CURRENT_WEEK - 1;
+      }).length;
+
+      const fmtRange = (wi) => {
+        const s = new Date(PLAN_START); s.setDate(s.getDate() + wi * 7);
+        const e = new Date(s); e.setDate(e.getDate() + 6);
+        const fmt = d => d.toLocaleDateString("es-CL", { day:"numeric", month:"short" });
+        return `${fmt(s)} – ${fmt(e)}`;
+      };
+
+      const statusLabel = { loading:"Cargando…", saving:"Guardando…", saved:"✓ Guardado", ready:"" }[status];
+
+      if (status === "loading") return (
+        <div style={{ padding:60, textAlign:"center", color:"#6B7280", fontFamily:"'Open Sans', sans-serif" }}>
+          <div style={{ fontSize:40, marginBottom:16 }}>🏃</div>
+          <div>Cargando tu progreso…</div>
+        </div>
+      );
+
+      return (
+        <div style={{ fontFamily:"'Open Sans', sans-serif", color:"#111", padding:"8px 0", maxWidth:720 }}>
+
+          {/* HERO */}
+          <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:16, padding:"20px 22px", marginBottom:14, display:"flex", flexDirection:"column", gap:14 }}>
+            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
+              <div>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+                  <span style={{ fontSize:26 }}>🏁</span>
+                  <h1 style={{ fontSize:24, fontWeight:600, margin:0, fontFamily:"'Open Sans', sans-serif", letterSpacing:"-0.5px" }}>Maratón de Viña del Mar 2026</h1>
+                </div>
+                <p style={{ fontSize:12, color:"#6B7280", margin:0 }}>Plan Hal Higdon Novice 1 · 18 semanas</p>
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
+                <div style={{ background:"#EEF2FF", border:"1px solid #A5B4FC", borderRadius:10, padding:"8px 16px", textAlign:"center", minWidth:80 }}>
+                  <div style={{ fontSize:22, fontWeight:600, color:"#3730A3", lineHeight:1 }}>{daysLeft}</div>
+                  <div style={{ fontSize:11, color:"#4338CA", marginTop:2 }}>días restantes</div>
+                </div>
+                {statusLabel ? <span style={{ fontSize:11, color: status==="saved" ? "#059669" : "#6B7280" }}>{statusLabel}</span> : null}
+              </div>
+            </div>
+
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10 }}>
+              {[
+                { icon:"📆", val:`Semana ${CURRENT_WEEK}`, sub: fmtRange(CURRENT_WEEK-1), accent:"#6366F1", abg:"#EEF2FF", aborder:"#A5B4FC" },
+                { icon:"✅", val:`${totalChecked} / ${totalTasks}`, sub:"actividades hechas", accent:"#059669", abg:"#ECFDF5", aborder:"#6EE7B7" },
+                { icon:"🗓️", val:`${weeksCompleted} / 18`, sub:"semanas completas", accent:"#D97706", abg:"#FFFBEB", aborder:"#FCD34D" },
+              ].map(({ icon, val, sub, accent, abg, aborder }) => (
+                <div key={sub} style={{ background:abg, border:`1px solid ${aborder}`, borderRadius:10, padding:"12px 14px" }}>
+                  <div style={{ fontSize:18, marginBottom:4 }}>{icon}</div>
+                  <div style={{ fontSize:17, fontWeight:600, color:accent }}>{val}</div>
+                  <div style={{ fontSize:11, color:accent, opacity:0.75, marginTop:2 }}>{sub}</div>
+                </div>
+              ))}
+            </div>
+
+            <div>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                <span style={{ fontSize:12, color:"#6B7280", fontWeight:500 }}>Progreso total del plan</span>
+                <span style={{ fontSize:12, fontWeight:600, color:"#6366F1" }}>{overallPct}%</span>
+              </div>
+              <div style={{ height:8, background:"#F3F4F6", borderRadius:4, overflow:"hidden", border:"1px solid #E5E7EB" }}>
+                <div style={{ width:`${overallPct}%`, height:"100%", background: overallPct===100 ? "#10B981" : "#6366F1", borderRadius:4, transition:"width 0.4s" }} />
+              </div>
+            </div>
+          </div>
+
+          {/* WEEK SELECTOR */}
+          <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:12 }}>
+            {RAW_PLAN.map((_, wi) => {
+              const wt = plan[wi].flat();
+              const full = wt.length > 0 && wt.every(t => done[t.id]);
+              const isActive = wi === activeWeek;
+              const isCurrent = wi === CURRENT_WEEK - 1;
+              return (
+                <button key={wi} onClick={() => setActiveWeek(wi)} style={{
+                  padding:"5px 9px", borderRadius:7, fontSize:12, cursor:"pointer",
+                  border: isActive ? "2px solid #6366F1" : "1px solid #E5E7EB",
+                  background: full ? "#ECFDF5" : isActive ? "#EEF2FF" : "#fff",
+                  color: full ? "#065F46" : isActive ? "#4338CA" : "#6B7280",
+                  fontWeight: isCurrent ? 700 : 400, transition:"all 0.15s",
+                  fontFamily:"'Open Sans', sans-serif",
+                }}>
+                  S{wi+1}{isCurrent ? " ●" : full ? " ✓" : ""}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* WEEK PROGRESS BAR */}
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14, background:"#F9FAFB", borderRadius:10, padding:"10px 14px" }}>
+            <div style={{ whiteSpace:"nowrap" }}>
+              <span style={{ fontSize:13, fontWeight:600, color:"#111" }}>Semana {activeWeek+1}</span>
+              <span style={{ fontSize:11, color:"#6B7280", marginLeft:6 }}>{fmtRange(activeWeek)}</span>
+            </div>
+            <div style={{ flex:1, height:7, background:"#fff", borderRadius:4, overflow:"hidden", border:"1px solid #E5E7EB" }}>
+              <div style={{ width:`${wPct}%`, height:"100%", background: wPct===100 ? "#10B981" : "#6366F1", borderRadius:4, transition:"width 0.4s" }} />
+            </div>
+            <span style={{ fontSize:13, fontWeight:600, minWidth:36, textAlign:"right", color: wPct===100 ? "#059669" : "#111" }}>{wPct}%</span>
+          </div>
+
+          {/* DAY GRID */}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:6 }}>
+            {DAYS.map((day, di) => {
+              const isOver = dragOver && dragOver.wi === activeWeek && dragOver.di === di;
+              const tasks = plan[activeWeek][di] || [];
+              const dayDone = tasks.length > 0 && tasks.every(t => done[t.id]);
+              const dayDate = new Date(PLAN_START);
+              dayDate.setDate(dayDate.getDate() + activeWeek * 7 + di);
+              const dayNum = dayDate.getDate();
+              const dayMonth = dayDate.toLocaleDateString("es-CL", { month:"short" });
+              return (
+                <div key={di}
+                  onDragOver={e => { e.preventDefault(); setDragOver({ wi:activeWeek, di }); }}
+                  onDrop={handleDrop(activeWeek, di)}
+                  onDragLeave={() => setDragOver(null)}
+                  style={{
+                    minHeight:80, borderRadius:10,
+                    border: isOver ? "2px dashed #6366F1" : dayDone ? "1px solid #6EE7B7" : "1px solid #E5E7EB",
+                    background: isOver ? "#EEF2FF" : dayDone ? "#F0FDF4" : "#fff",
+                    padding:"8px 6px", transition:"all 0.15s", display:"flex", flexDirection:"column", gap:4,
+                  }}
+                >
+                  <div style={{ textAlign:"center", marginBottom:2 }}>
+                    <div style={{ fontSize:11, fontWeight:600, color: dayDone ? "#059669" : "#6B7280" }}>{day}{dayDone ? " ✓" : ""}</div>
+                    <div style={{ fontSize:10, color:"#9CA3AF", lineHeight:1.2 }}>{dayNum} {dayMonth}</div>
+                  </div>
+                  {tasks.map((task, ti) => {
+                    const cfg = TYPE_CFG[task.type] || TYPE_CFG.rest;
+                    const isDraggingThis = dragging && dragging.wi===activeWeek && dragging.di===di && dragging.ti===ti;
+                    const isDone = done[task.id];
+                    return (
+                      <div key={task.id}
+                        draggable={task.movable}
+                        onDragStart={task.movable ? handleDragStart(activeWeek, di, ti) : undefined}
+                        onDragEnd={task.movable ? handleDragEnd : undefined}
+                        onClick={() => toggleDone(task.id)}
+                        style={{
+                          background: isDone ? "#F0FDF4" : cfg.bg,
+                          color: isDone ? "#065F46" : cfg.color,
+                          border: `1px solid ${isDone ? "#6EE7B7" : cfg.border}`,
+                          borderRadius:7, padding:"5px 7px", fontSize:11, fontWeight:500,
+                          cursor: task.movable ? "grab" : "pointer",
+                          opacity: isDraggingThis ? 0.3 : 1,
+                          userSelect:"none", transition:"all 0.15s",
+                          display:"flex", flexDirection:"column", gap:2,
+                          fontFamily:"'Open Sans', sans-serif",
+                        }}
+                      >
+                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:3 }}>
+                          <span style={{ fontSize:13 }}>{cfg.icon}</span>
+                          <span style={{ fontSize:13, opacity:0.7 }}>{isDone ? "✓" : "○"}</span>
+                        </div>
+                        <div style={{ fontSize:11, lineHeight:1.3, wordBreak:"break-word" }}>{task.label}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ marginTop:12, display:"flex", gap:10, flexWrap:"wrap" }}>
+            {Object.entries(TYPE_CFG).map(([k, v]) => (
+              <span key={k} style={{ fontSize:11, color:"#6B7280", display:"flex", alignItems:"center", gap:3 }}>
+                <span>{v.icon}</span><span>{v.label}</span>
+              </span>
+            ))}
+          </div>
+          <p style={{ fontSize:11, color:"#9CA3AF", marginTop:6, marginBottom:0 }}>
+            Arrastra para mover · Toca para marcar como completado
+          </p>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
