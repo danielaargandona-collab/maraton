@@ -110,15 +110,15 @@
       const days = [];
       for (let d = 0; d < 7; d++) {
         const tasks = [];
-        if (d === 1 || d === 4) tasks.push({ id:`w${wi}d${d}pilates`, type:"pilates", label:"Pilates", movable:false });
+        if (d === 1 || d === 4) tasks.push({ id:`w${wi}d${d}pilates`, type:"pilates", label:"Pilates", movable:true });
         const val = row[d];
-        if (d === 0) tasks.push({ id:`w${wi}d${d}rest`, type:"rest", label:"Descanso", movable:false });
-        else if (d === 4) tasks.push({ id:`w${wi}d${d}rest`, type:"rest", label:"Descanso", movable:false });
+        if (d === 0) tasks.push({ id:`w${wi}d${d}rest`, type:"rest", label:"Descanso", movable:true });
+        else if (d === 4) tasks.push({ id:`w${wi}d${d}rest`, type:"rest", label:"Descanso", movable:true });
         else if (d === 1 || d === 2 || d === 3) {
           if (val && val[0]) tasks.push({ id:`w${wi}d${d}run`, type:"run", label:`Correr ${adjustDist(val[0])} km`, movable:true });
         } else if (d === 5) {
           if (val && val[0]) tasks.push({ id:`w${wi}d${d}run`, type:"run", label:`Correr ${adjustDist(val[0])} km`, movable:true });
-          else tasks.push({ id:`w${wi}d${d}rest`, type:"rest", label:"Descanso", movable:false });
+          else tasks.push({ id:`w${wi}d${d}rest`, type:"rest", label:"Descanso", movable:true });
         } else if (d === 6) {
           const s = row[6];
           if (s === "cross") {
