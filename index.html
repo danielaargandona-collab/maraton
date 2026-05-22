@@ -218,7 +218,6 @@
       return (
         <div style={{ fontFamily:"'Open Sans', sans-serif", color:"#111", padding:"8px 0", maxWidth:720 }}>
 
-          {/* HERO */}
           <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:16, padding:"20px 22px", marginBottom:14, display:"flex", flexDirection:"column", gap:14 }}>
             <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
               <div>
@@ -262,7 +261,6 @@
             </div>
           </div>
 
-          {/* WEEK SELECTOR */}
           <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:12 }}>
             {RAW_PLAN.map((_, wi) => {
               const wt = plan[wi].flat();
@@ -284,7 +282,6 @@
             })}
           </div>
 
-          {/* WEEK PROGRESS BAR */}
           <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14, background:"#F9FAFB", borderRadius:10, padding:"10px 14px" }}>
             <div style={{ whiteSpace:"nowrap" }}>
               <span style={{ fontSize:13, fontWeight:600, color:"#111" }}>Semana {activeWeek+1}</span>
@@ -296,7 +293,6 @@
             <span style={{ fontSize:13, fontWeight:600, minWidth:36, textAlign:"right", color: wPct===100 ? "#059669" : "#111" }}>{wPct}%</span>
           </div>
 
-          {/* DAY GRID */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:6 }}>
             {DAYS.map((day, di) => {
               const isOver = dragOver && dragOver.wi === activeWeek && dragOver.di === di;
