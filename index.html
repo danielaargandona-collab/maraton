@@ -183,6 +183,48 @@
       const weeksCompleted = plan.filter((wk, wi) => { const t = wk.flat(); return t.length > 0 && t.every(t2 => done[t2.id]) && wi < CURRENT_WEEK - 1; }).length;
       const statusLabel = { loading:"Cargando…", saving:"Guardando…", saved:"✓ Guardado", ready:"" }[status];
 
+      const [editing, setEditing] = useState(null);
+
+      const deleteTask = (wi, di, ti) => {
+        const next = plan.map(w => w.map(d => [...d]));
+        next[wi][di].splice(ti, 1);
+        setPlan(next);
+        save(next, done);
+      };
+
+      const addTask = (wi, di) => {
+        const id = `w${wi}d${di}custom${Date.now()}`;
+        const next = plan.map(w => w.map(d => [...d]));
+        next[wi][di] = [...next[wi][di], { id, type: "run", label: "" }];
+        setPlan(next);
+        setEditing({ wi, di, ti: next[wi][di].length - 1 });
+      };
+
+      const inferType = (label) => {
+        const l = label.toLowerCase();
+        if (l.includes("pilates")) return "pilates";
+        if (l.includes("descanso") || l.includes("rest") || l.includes("libre")) return "rest";
+        if (l.includes("maratón") || l.includes("maraton") || l.includes("42")) return "marathon";
+        if (l.includes("media maratón") || l.includes("media maraton") || l.includes("21")) return "half";
+        if (l.includes("cross") || l.includes("bici") || l.includes("nadar") || l.includes("natación") || l.includes("yoga") || l.includes("elíptica") || l.includes("eliptica")) return "cross";
+        if (l.includes("correr") || l.includes("carrera") || l.includes("run") || l.includes("trote") || l.includes("km")) return "run";
+        return null;
+      };
+
+      const renameTask = (wi, di, ti, label) => {
+        const next = plan.map(w => w.map(d => d.map(t => ({...t}))));
+        if (!label.trim()) {
+          next[wi][di].splice(ti, 1);
+        } else {
+          const detectedType = inferType(label);
+          next[wi][di][ti].label = label;
+          if (detectedType) next[wi][di][ti].type = detectedType;
+        }
+        setPlan(next);
+        save(next, done);
+        setEditing(null);
+      };
+
       const onDragStart = (wi, di, ti) => (e) => {
         dragSrc.current = { wi, di, ti };
         e.dataTransfer.effectAllowed = "move";
@@ -307,29 +349,49 @@
                   {tasks.map((task, ti) => {
                     const cfg = TYPE_CFG[task.type] || TYPE_CFG.rest;
                     const isDone = done[task.id];
+                    const isEditing = editing?.wi===activeWeek && editing?.di===di && editing?.ti===ti;
                     return (
                       <div key={task.id}
                         className="task-card"
-                        draggable="true"
-                        onDragStart={onDragStart(activeWeek, di, ti)}
-                        onDragEnd={onDragEnd}
+                        draggable={!isEditing ? "true" : "false"}
+                        onDragStart={!isEditing ? onDragStart(activeWeek, di, ti) : undefined}
+                        onDragEnd={!isEditing ? onDragEnd : undefined}
                         style={{
                           background: isDone ? "#F0FDF4" : cfg.bg,
                           color: isDone ? "#065F46" : cfg.color,
                           border: `1px solid ${isDone ? "#6EE7B7" : cfg.border}`,
+                          cursor: isEditing ? "default" : "grab",
                         }}
                       >
                         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:3 }}>
                           <span style={{ fontSize:13 }}>{cfg.icon}</span>
-                          <span
-                            onClick={(e) => { e.stopPropagation(); toggleDone(task.id); }}
-                            style={{ fontSize:13, opacity:0.7, cursor:"pointer" }}
-                          >{isDone ? "✓" : "○"}</span>
+                          <span onClick={(e) => { e.stopPropagation(); toggleDone(task.id); }} style={{ fontSize:13, opacity:0.7, cursor:"pointer" }}>{isDone ? "✓" : "○"}</span>
                         </div>
-                        <div style={{ fontSize:11, lineHeight:1.3, wordBreak:"break-word" }}>{task.label}</div>
+                        {isEditing ? (
+                          <input
+                            autoFocus
+                            defaultValue={task.label}
+                            placeholder="Nombre de la actividad…"
+                            onBlur={e => renameTask(activeWeek, di, ti, e.target.value)}
+                            onKeyDown={e => { if (e.key === "Enter") renameTask(activeWeek, di, ti, e.target.value); if (e.key === "Escape") { if (!task.label) deleteTask(activeWeek, di, ti); setEditing(null); } }}
+                            onClick={e => e.stopPropagation()}
+                            style={{ fontSize:11, border:"none", borderBottom:"1px solid #6366F1", background:"transparent", outline:"none", width:"100%", color:"inherit", fontFamily:"'Open Sans', sans-serif" }}
+                          />
+                        ) : (
+                          <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:2 }}>
+                            <div onClick={(e) => { e.stopPropagation(); setEditing({ wi:activeWeek, di, ti }); }} style={{ fontSize:11, lineHeight:1.3, wordBreak:"break-word", cursor:"text", flex:1 }} title="Click para editar">{task.label}</div>
+                            <span onClick={(e) => { e.stopPropagation(); deleteTask(activeWeek, di, ti); }} style={{ fontSize:11, opacity:0.35, cursor:"pointer", lineHeight:1.3, flexShrink:0 }} title="Eliminar">✕</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
+                  <button
+                    onClick={() => addTask(activeWeek, di)}
+                    onMouseEnter={e => { e.target.style.borderColor="#6366F1"; e.target.style.color="#6366F1"; }}
+                    onMouseLeave={e => { e.target.style.borderColor="#D1D5DB"; e.target.style.color="#9CA3AF"; }}
+                    style={{ marginTop:2, padding:"3px 0", width:"100%", border:"1px dashed #D1D5DB", borderRadius:6, background:"transparent", color:"#9CA3AF", fontSize:14, cursor:"pointer", transition:"all 0.15s" }}
+                  >+</button>
                 </div>
               );
             })}
