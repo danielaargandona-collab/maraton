@@ -376,7 +376,7 @@
                           <span style={{ fontSize: 13 }}>{cfg.icon}</span>
                           <span
                             onClick={(e) => { e.stopPropagation(); cycleStatus(task.id); }}
-                            style={{ fontSize: 12, cursor: "pointer", lineHeight: 1 }}
+                            style={{ fontSize: 12, cursor: "pointer", lineHeight: 1, width: 18, textAlign: "center", display: "inline-block" }}
                             title={taskStatus === "done" ? "Marcar como no hecha" : taskStatus === "missed" ? "Marcar como pendiente" : "Marcar como hecha"}
                           >{statusIcon}</span>
                         </div>
