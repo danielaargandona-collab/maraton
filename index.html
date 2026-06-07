@@ -51,11 +51,7 @@
 
     const RACE_DATE = new Date("2026-06-28");
     const CURRENT_WEEK = 4;
-    const TODAY = new Date();
-    const THIS_MONDAY = new Date(TODAY);
-    THIS_MONDAY.setDate(TODAY.getDate() - ((TODAY.getDay() + 6) % 7));
-    const PLAN_START = new Date(THIS_MONDAY);
-    PLAN_START.setDate(THIS_MONDAY.getDate() - (CURRENT_WEEK - 1) * 7);
+    const PLAN_START = new Date("2026-05-04");
 
     function adjustDist(d) {
       if (d === null) return null;
