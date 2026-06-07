@@ -50,7 +50,7 @@
     }
 
     const RACE_DATE = new Date(2026, 9, 4);
-    const CURRENT_WEEK = 4;
+    const CURRENT_WEEK = 6;
     const PLAN_START = new Date(2026, 3, 27);
 
     function adjustDist(d) {
@@ -91,6 +91,7 @@
     const TYPE_CFG = {
       run:      { bg:"#EEF2FF", color:"#3730A3", border:"#A5B4FC", icon:"🏃", label:"Correr" },
       cross:    { bg:"#ECFDF5", color:"#065F46", border:"#6EE7B7", icon:"🚴", label:"Cross" },
+      recover:  { bg:"#FEF3C7", color:"#92400E", border:"#FCD34D", icon:"🩹", label:"Recover" },
       race:     { bg:"#FDF2F8", color:"#9D174D", border:"#F9A8D4", icon:"🏅", label:"Carrera" },
       marathon: { bg:"#F5F3FF", color:"#5B21B6", border:"#C4B5FD", icon:"🏆", label:"Maratón" },
       pilates:  { bg:"#FFF7ED", color:"#92400E", border:"#FCD34D", icon:"🧘", label:"Pilates" },
@@ -138,6 +139,7 @@
 
     function inferType(label) {
       const l = label.toLowerCase();
+      if (l.includes("recover") || l.includes("recupera") || l.includes("lesion")) return "recover";
       if (l.includes("pilates")) return "pilates";
       if (l.includes("descanso") || l.includes("rest") || l.includes("libre")) return "rest";
       if (l.includes("maraton") || l.includes("42")) return "marathon";
