@@ -136,9 +136,9 @@
       const l = label.toLowerCase();
       if (l.includes("pilates")) return "pilates";
       if (l.includes("descanso") || l.includes("rest") || l.includes("libre")) return "rest";
-      if (l.includes("maratón") || l.includes("maraton") || l.includes("42")) return "marathon";
-      if (l.includes("media maratón") || l.includes("media maraton") || l.includes("21")) return "half";
-      if (l.includes("cross") || l.includes("bici") || l.includes("nadar") || l.includes("natación") || l.includes("yoga") || l.includes("elíptica") || l.includes("eliptica")) return "cross";
+      if (l.includes("maraton") || l.includes("42")) return "marathon";
+      if (l.includes("media maraton") || l.includes("21")) return "half";
+      if (l.includes("cross") || l.includes("bici") || l.includes("nadar") || l.includes("natacion") || l.includes("yoga") || l.includes("eliptica")) return "cross";
       if (l.includes("correr") || l.includes("carrera") || l.includes("run") || l.includes("trote") || l.includes("km")) return "run";
       return null;
     }
@@ -257,7 +257,7 @@
 
       if (status === "loading") return (
         <div style={{ padding: 60, textAlign: "center", color: "#6B7280", fontFamily: "'Open Sans', sans-serif" }}>
-          <div style={{ fontSize: 40, marginBottom: 16 }}>&#127939;</div>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>🏃</div>
           <div>Cargando tu progreso...</div>
         </div>
       );
@@ -269,28 +269,25 @@
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 26 }}>&#127937;</span>
-                  <h1 style={{ fontSize: 24, fontWeight: 600, margin: 0, fontFamily: "'Open Sans', sans-serif", letterSpacing: "-0.5px" }}>Maraton de Vina del Mar 2026</h1>
+                  <span style={{ fontSize: 26 }}>🏁</span>
+                  <h1 style={{ fontSize: 24, fontWeight: 600, margin: 0, fontFamily: "'Open Sans', sans-serif", letterSpacing: "-0.5px" }}>Maratón de Viña del Mar 2026</h1>
                 </div>
-                <p style={{ fontSize: 12, color: "#6B7280", margin: 0 }}>Plan Hal Higdon Novice 1 - 18 semanas</p>
+                <p style={{ fontSize: 12, color: "#6B7280", margin: 0 }}>Plan Hal Higdon Novice 1 · 18 semanas</p>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                <div style={{ background: "#EEF2FF", border: "1px solid #A5B4FC", borderRadius: 10, padding: "8px 16px", textAlign: "center", minWidth: 80 }}>
-                  <div style={{ fontSize: 22, fontWeight: 600, color: "#3730A3", lineHeight: 1 }}>{daysLeft}</div>
-                  <div style={{ fontSize: 11, color: "#4338CA", marginTop: 2 }}>dias restantes</div>
-                </div>
-                {statusLabel ? <span style={{ fontSize: 11, color: status === "saved" ? "#059669" : "#6B7280" }}>{statusLabel}</span> : null}
+              <div style={{ background: "#EEF2FF", border: "1px solid #A5B4FC", borderRadius: 10, padding: "8px 16px", textAlign: "center", minWidth: 80 }}>
+                <div style={{ fontSize: 22, fontWeight: 600, color: "#3730A3", lineHeight: 1 }}>{daysLeft}</div>
+                <div style={{ fontSize: 11, color: "#4338CA", marginTop: 2 }}>días restantes</div>
               </div>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
               {[
-                { icon: "&#128198;", val: `Semana ${CURRENT_WEEK}`, sub: fmtRange(CURRENT_WEEK - 1), accent: "#6366F1", abg: "#EEF2FF", aborder: "#A5B4FC" },
-                { icon: "&#9989;", val: `${totalChecked} / ${totalTasks}`, sub: "actividades registradas", accent: "#059669", abg: "#ECFDF5", aborder: "#6EE7B7" },
-                { icon: "&#128197;", val: `${weeksCompleted} / 18`, sub: "semanas completas", accent: "#D97706", abg: "#FFFBEB", aborder: "#FCD34D" },
+                { icon: "📆", val: `Semana ${CURRENT_WEEK}`, sub: fmtRange(CURRENT_WEEK - 1), accent: "#6366F1", abg: "#EEF2FF", aborder: "#A5B4FC" },
+                { icon: "✅", val: `${totalChecked} / ${totalTasks}`, sub: "actividades registradas", accent: "#059669", abg: "#ECFDF5", aborder: "#6EE7B7" },
+                { icon: "🗓️", val: `${weeksCompleted} / 18`, sub: "semanas completas", accent: "#D97706", abg: "#FFFBEB", aborder: "#FCD34D" },
               ].map(({ icon, val, sub, accent, abg, aborder }) => (
                 <div key={sub} style={{ background: abg, border: `1px solid ${aborder}`, borderRadius: 10, padding: "12px 14px", minHeight: 80 }}>
-                  <div style={{ fontSize: 18, marginBottom: 4 }} dangerouslySetInnerHTML={{ __html: icon }} />
+                  <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
                   <div style={{ fontSize: 17, fontWeight: 600, color: accent, whiteSpace: "nowrap" }}>{val}</div>
                   <div style={{ fontSize: 11, color: accent, opacity: 0.75, marginTop: 2 }}>{sub}</div>
                 </div>
@@ -363,7 +360,7 @@
                     const cardBg = taskStatus === "done" ? "#F0FDF4" : taskStatus === "missed" ? "#FFFBEB" : cfg.bg;
                     const cardColor = taskStatus === "done" ? "#065F46" : taskStatus === "missed" ? "#92400E" : cfg.color;
                     const cardBorder = taskStatus === "done" ? "#6EE7B7" : taskStatus === "missed" ? "#FCD34D" : cfg.border;
-                    const statusIcon = taskStatus === "done" ? "&#10003;" : taskStatus === "missed" ? "&#9888;" : "&#9675;";
+                    const statusIcon = taskStatus === "done" ? "✓" : taskStatus === "missed" ? "⚠" : "○";
                     return (
                       <div key={task.id}
                         className="task-card"
@@ -377,8 +374,7 @@
                           <span
                             onClick={(e) => { e.stopPropagation(); cycleStatus(task.id); }}
                             style={{ fontSize: 12, cursor: "pointer", lineHeight: 1, width: 18, textAlign: "center", display: "inline-block" }}
-                            dangerouslySetInnerHTML={{ __html: statusIcon }}
-                          />
+                          >{statusIcon}</span>
                         </div>
                         {isEditing ? (
                           <input
@@ -424,11 +420,14 @@
               </span>
             ))}
             <span style={{ fontSize: 11, color: "#92400E", display: "flex", alignItems: "center", gap: 3 }}>
-              <span>&#9888;</span><span>No hecha</span>
+              <span>⚠</span><span>No hecha</span>
             </span>
           </div>
           <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6, marginBottom: 0 }}>
             Arrastra para mover · Toca el icono para cambiar estado · Toca el nombre para editar
+          </p>
+          <p style={{ fontSize: 11, height: 18, marginTop: 4, marginBottom: 0, color: status === "saved" ? "#059669" : "#9CA3AF" }}>
+            {statusLabel}
           </p>
         </div>
       );
