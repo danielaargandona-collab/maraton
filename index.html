@@ -318,7 +318,7 @@
                   background: full ? "#ECFDF5" : isActive ? "#EEF2FF" : "#fff",
                   color: full ? "#065F46" : isActive ? "#4338CA" : "#6B7280",
                   fontWeight: isCurrent ? 700 : 400, transition: "all 0.15s",
-                }}>S{wi + 1}{isCurrent ? " *" : full ? " ok" : ""}</button>
+                }}>S{wi + 1}{full ? " ok" : isCurrent ? " *" : ""}</button>
               );
             })}
           </div>
