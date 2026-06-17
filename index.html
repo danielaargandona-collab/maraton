@@ -8,440 +8,430 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600&display=swap" />
   <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Open Sans', sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; justify-content: center; padding: 24px 16px; }
     #root { width: 100%; max-width: 760px; }
     button { font-family: 'Open Sans', sans-serif; }
-    .task-card { border-radius: 7px; padding: 5px 7px; font-size: 11px; font-weight: 500; user-select: none; transition: all 0.15s; display: flex; flex-direction: column; gap: 2px; font-family: 'Open Sans', sans-serif; }
-    .task-card[draggable="true"] { cursor: grab; }
-    .task-card[draggable="true"]:active { cursor: grabbing; opacity: 0.5; }
-    .drop-zone { min-height: 80px; border-radius: 10px; padding: 8px 6px; transition: all 0.15s; display: flex; flex-direction: column; gap: 4px; }
+    .drop-zone { min-height: 80px; border-radius: 10px; padding: 8px 6px; transition: border 0.15s, background 0.15s; display: flex; flex-direction: column; gap: 4px; }
     .drop-zone.drag-over { border: 2px dashed #6366F1 !important; background: #EEF2FF !important; }
+    .task-card { border-radius: 7px; padding: 5px 7px; font-size: 11px; font-weight: 500; user-select: none; transition: all 0.15s; display: flex; flex-direction: column; gap: 2px; cursor: grab; font-family: 'Open Sans', sans-serif; }
+    .task-card:active { opacity: 0.5; cursor: grabbing; }
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useEffect, useRef } = React; = "https://ssrvbprgkwaoxzrvpwym.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzcnZicHJna3dhb3h6cnZwd3ltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzOTYzNzAsImV4cCI6MjA5NDk3MjM3MH0.NMfB1mJRJEdBRqynYR4aBq1non82o9htoIi2jKeHsf4";
+<div id="root"></div>
+<script>
+const e = React.createElement;
+const { useState, useEffect, useRef } = React;
 
-    async function dbGet(key) {
-      try {
-        const r = await fetch(`${SUPABASE_URL}/rest/v1/tracker?key=eq.${key}&select=value`, {
-          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-        });
-        const d = await r.json();
-        return d && d[0] ? JSON.parse(d[0].value) : null;
-      } catch { return null; }
+const SUPABASE_URL = "https://ssrvbprgkwaoxzrvpwym.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzcnZicHJna3dhb3h6cnZwd3ltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzOTYzNzAsImV4cCI6MjA5NDk3MjM3MH0.NMfB1mJRJEdBRqynYR4aBq1non82o9htoIi2jKeHsf4";
+
+async function dbGet(key) {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/tracker?key=eq.${key}&select=value`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    });
+    const d = await r.json();
+    return d && d[0] ? JSON.parse(d[0].value) : null;
+  } catch { return null; }
+}
+
+async function dbSet(key, value) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/tracker`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
+      body: JSON.stringify({ key, value: JSON.stringify(value) })
+    });
+  } catch {}
+}
+
+const RACE_DATE = new Date(2026, 9, 4);
+const CURRENT_WEEK = 6;
+const PLAN_START = new Date(2026, 3, 27);
+
+function adjustDist(d) {
+  if (d === null) return null;
+  const dec = d % 1;
+  if (dec === 0) return d;
+  if (dec < 0.4) return Math.floor(d);
+  if (dec <= 0.45) return Math.floor(d) + 0.5;
+  return Math.ceil(d);
+}
+
+const RAW_PLAN = [
+  [null,[4.8],[4.8],[4.8],null,[9.7],"cross"],
+  [null,[4.8],[4.8],[4.8],null,[11.3],"cross"],
+  [null,[4.8],[6.4],[4.8],null,[8.1],"cross"],
+  [null,[4.8],[6.4],[4.8],null,[14.5],"cross"],
+  [null,[4.8],[8.1],[4.8],null,[16.1],"cross"],
+  [null,[4.8],[8.1],[4.8],null,[11.3],"cross"],
+  [null,null,null,null,null,null,"empty"],
+  [null,null,null,null,null,null,"empty"],
+  [null,null,null,null,null,null,"empty"],
+  [null,[4.8],[9.7],[4.8],null,[19.3],"cross"],
+  [null,[4.8],[9.7],[4.8],null,null,"half"],
+  [null,[4.8],[11.3],[6.4],null,[16.1],"cross"],
+  [null,[4.8],[11.3],[6.4],null,[24.1],"cross"],
+  [null,[6.4],[12.9],[6.4],null,[25.7],"cross"],
+  [null,[6.4],[12.9],[8.1],null,[19.3],"cross"],
+  [null,[6.4],[14.5],[8.1],null,[29],"cross"],
+  [null,[8.1],[14.5],[8.1],null,[22.5],"cross"],
+  [null,[8.1],[16.1],[8.1],null,[32.2],"cross"],
+  [null,[8.1],[12.9],[6.4],null,[19.3],"cross"],
+  [null,[6.4],[9.7],[4.8],null,[12.9],"cross"],
+  [null,[4.8],[6.4],[3.2],null,null,"marathon"],
+];
+
+const DAYS = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+
+const TYPE_CFG = {
+  run:      { bg:"#EEF2FF", color:"#3730A3", border:"#A5B4FC", icon:"🏃", label:"Correr" },
+  cross:    { bg:"#ECFDF5", color:"#065F46", border:"#6EE7B7", icon:"🚴", label:"Cross" },
+  recover:  { bg:"#FEF3C7", color:"#92400E", border:"#FCD34D", icon:"🩹", label:"Recover" },
+  race:     { bg:"#FDF2F8", color:"#9D174D", border:"#F9A8D4", icon:"🏅", label:"Carrera" },
+  marathon: { bg:"#F5F3FF", color:"#5B21B6", border:"#C4B5FD", icon:"🏆", label:"Maratón" },
+  pilates:  { bg:"#FFF7ED", color:"#92400E", border:"#FCD34D", icon:"🧘", label:"Pilates" },
+  rest:     { bg:"#F9FAFB", color:"#6B7280", border:"#E5E7EB", icon:"💤", label:"Descanso" },
+  half:     { bg:"#FDF2F8", color:"#9D174D", border:"#F9A8D4", icon:"🏅", label:"Media Maratón" },
+};
+
+function mk(id, type, label) { return { id, type, label }; }
+
+function buildWeek(wi) {
+  const row = RAW_PLAN[wi];
+  const special = row[6];
+  const days = [];
+  for (let d = 0; d < 7; d++) {
+    if (special === "empty") { days.push([]); continue; }
+    const tasks = [];
+    const val = row[d];
+    if (d === 0) tasks.push(mk(`w${wi}d${d}rest`, "rest", "Descanso"));
+    else if (d === 1) {
+      tasks.push(mk(`w${wi}d${d}pilates`, "pilates", "Pilates"));
+      if (val && val[0]) tasks.push(mk(`w${wi}d${d}run`, "run", `Correr ${adjustDist(val[0])} km`));
+    } else if (d === 2) {
+      if (val && val[0]) tasks.push(mk(`w${wi}d${d}run`, "run", `Correr ${adjustDist(val[0])} km`));
+    } else if (d === 3) {
+      if (val && val[0]) tasks.push(mk(`w${wi}d${d}run`, "run", `Correr ${adjustDist(val[0])} km`));
+    } else if (d === 4) {
+      tasks.push(mk(`w${wi}d${d}pilates`, "pilates", "Pilates"));
+      tasks.push(mk(`w${wi}d${d}rest`, "rest", "Descanso"));
+    } else if (d === 5) {
+      if (val && val[0]) tasks.push(mk(`w${wi}d${d}run`, "run", `Correr ${adjustDist(val[0])} km`));
+      else tasks.push(mk(`w${wi}d${d}rest`, "rest", "Descanso"));
+    } else if (d === 6) {
+      if (special === "cross") {
+        const km = val && val[0] ? adjustDist(val[0]) : null;
+        tasks.push(mk(`w${wi}d${d}cross`, "cross", km ? `Cross ${km} km` : "Cross-training"));
+      } else if (special === "half") tasks.push(mk(`w${wi}d${d}race`, "half", "Media Maratón"));
+      else if (special === "marathon") tasks.push(mk(`w${wi}d${d}race`, "marathon", "¡Maratón!"));
     }
+    days.push(tasks);
+  }
+  return days;
+}
 
-    async function dbSet(key, value) {
-      try {
-        await fetch(`${SUPABASE_URL}/rest/v1/tracker`, {
-          method: "POST",
-          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
-          body: JSON.stringify({ key, value: JSON.stringify(value) })
-        });
-      } catch {}
+const INITIAL_PLAN = RAW_PLAN.map((_, wi) => buildWeek(wi));
+
+function inferType(label) {
+  const l = label.toLowerCase();
+  if (l.includes("recover") || l.includes("recupera") || l.includes("lesion")) return "recover";
+  if (l.includes("pilates")) return "pilates";
+  if (l.includes("descanso") || l.includes("libre")) return "rest";
+  if (l.includes("maraton") || l.includes("42")) return "marathon";
+  if (l.includes("media maraton") || l.includes("21")) return "half";
+  if (l.includes("cross") || l.includes("bici") || l.includes("nadar") || l.includes("yoga") || l.includes("eliptica")) return "cross";
+  if (l.includes("correr") || l.includes("carrera") || l.includes("run") || l.includes("trote") || l.includes("km")) return "run";
+  return null;
+}
+
+function isWeekComplete(tasks, done) {
+  return tasks.length > 0 && tasks.every(t => done[t.id] === "done" || done[t.id] === "missed");
+}
+
+function fmtRange(wi) {
+  const s = new Date(PLAN_START); s.setDate(s.getDate() + wi * 7);
+  const en = new Date(s); en.setDate(en.getDate() + 6);
+  const fmt = d => d.toLocaleDateString("es-CL", { day: "numeric", month: "short" });
+  return `${fmt(s)} - ${fmt(en)}`;
+}
+
+function s(obj) { return obj; }
+
+function App() {
+  const [plan, setPlan] = useState(INITIAL_PLAN);
+  const [done, setDone] = useState({});
+  const [activeWeek, setActiveWeek] = useState(CURRENT_WEEK - 1);
+  const [editing, setEditing] = useState(null);
+  const [status, setStatus] = useState("loading");
+  const [editVal, setEditVal] = useState("");
+  const dragSrc = useRef(null);
+  const saveTimer = useRef(null);
+
+  useEffect(() => {
+    (async () => {
+      const [sp, sd] = await Promise.all([dbGet("plan"), dbGet("done")]);
+      if (sp && sp.length === INITIAL_PLAN.length) setPlan(sp);
+      else if (sp && sp.length !== INITIAL_PLAN.length) { setPlan(INITIAL_PLAN); dbSet("plan", INITIAL_PLAN); }
+      if (sd) setDone(sd);
+      setStatus("ready");
+    })();
+  }, []);
+
+  function save(np, nd) {
+    setStatus("saving");
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      await Promise.all([dbSet("plan", np), dbSet("done", nd)]);
+      setStatus("saved");
+      setTimeout(() => setStatus("ready"), 2000);
+    }, 800);
+  }
+
+  function cycleStatus(id) {
+    const cur = done[id];
+    const next = cur === "done" ? "missed" : cur === "missed" ? undefined : "done";
+    const nd = { ...done, [id]: next };
+    setDone(nd);
+    save(plan, nd);
+  }
+
+  function deleteTask(wi, di, ti) {
+    const next = plan.map(w => w.map(d => [...d]));
+    next[wi][di].splice(ti, 1);
+    setPlan(next); save(next, done);
+  }
+
+  function addTask(wi, di) {
+    const id = `w${wi}d${di}custom${Date.now()}`;
+    const next = plan.map(w => w.map(d => [...d]));
+    next[wi][di] = [...next[wi][di], { id, type: "run", label: "" }];
+    setPlan(next);
+    setEditing({ wi, di, ti: next[wi][di].length - 1 });
+    setEditVal("");
+  }
+
+  function commitEdit(wi, di, ti) {
+    const label = editVal.trim();
+    const next = plan.map(w => w.map(d => d.map(t => ({ ...t }))));
+    if (!label) { next[wi][di].splice(ti, 1); }
+    else {
+      const dt = inferType(label);
+      next[wi][di][ti].label = label;
+      if (dt) next[wi][di][ti].type = dt;
     }
+    setPlan(next); save(next, done); setEditing(null);
+  }
 
-    const RACE_DATE = new Date(2026, 9, 4);
-    const CURRENT_WEEK = 6;
-    const PLAN_START = new Date(2026, 3, 27);
+  function onDragStart(wi, di, ti, e) {
+    dragSrc.current = { wi, di, ti };
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", `${wi},${di},${ti}`);
+    e.currentTarget.style.opacity = "0.4";
+  }
+  function onDragEnd(e) { e.currentTarget.style.opacity = "1"; }
+  function onDragOver(e) { e.preventDefault(); e.currentTarget.classList.add("drag-over"); }
+  function onDragLeave(e) { if (!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.classList.remove("drag-over"); }
+  function onDrop(wi, di, e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove("drag-over");
+    const raw = e.dataTransfer.getData("text/plain");
+    let src = dragSrc.current;
+    if (!src && raw) { const p = raw.split(",").map(Number); src = { wi: p[0], di: p[1], ti: p[2] }; }
+    if (!src || (src.wi === wi && src.di === di)) return;
+    const next = plan.map(w => w.map(d => [...d]));
+    const [task] = next[src.wi][src.di].splice(src.ti, 1);
+    next[wi][di] = [...next[wi][di], task];
+    setPlan(next); save(next, done); dragSrc.current = null;
+  }
 
-    function adjustDist(d) {
-      if (d === null) return null;
-      const dec = d % 1;
-      if (dec === 0) return d;
-      if (dec < 0.4) return Math.floor(d);
-      if (dec <= 0.45) return Math.floor(d) + 0.5;
-      return Math.ceil(d);
-    }
+  const today = new Date();
+  const daysLeft = Math.max(0, Math.ceil((RACE_DATE - today) / 86400000));
+  const allTasks = plan.flat(2);
+  const totalTasks = allTasks.length;
+  const totalChecked = allTasks.filter(t => done[t.id] === "done" || done[t.id] === "missed").length;
+  const overallPct = totalTasks ? Math.round((totalChecked / totalTasks) * 100) : 0;
+  const wTasks = plan[activeWeek].flat();
+  const wDone = wTasks.filter(t => done[t.id] === "done" || done[t.id] === "missed").length;
+  const wPct = wTasks.length ? Math.round((wDone / wTasks.length) * 100) : 0;
+  const weeksCompleted = plan.filter(wk => isWeekComplete(wk.flat(), done)).length;
+  const statusLabel = { loading: "Cargando...", saving: "Guardando...", saved: "Guardado", ready: "" }[status];
 
-    const RAW_PLAN = [
-      [null,[4.8],[4.8],[4.8],null,[9.7],"cross"],
-      [null,[4.8],[4.8],[4.8],null,[11.3],"cross"],
-      [null,[4.8],[6.4],[4.8],null,[8.1],"cross"],
-      [null,[4.8],[6.4],[4.8],null,[14.5],"cross"],
-      [null,[4.8],[8.1],[4.8],null,[16.1],"cross"],
-      [null,[4.8],[8.1],[4.8],null,[11.3],"cross"],
-      [null,null,null,null,null,null,"empty"],
-      [null,null,null,null,null,null,"empty"],
-      [null,null,null,null,null,null,"empty"],
-      [null,[4.8],[9.7],[4.8],null,[19.3],"cross"],
-      [null,[4.8],[9.7],[4.8],null,null,"half"],
-      [null,[4.8],[11.3],[6.4],null,[16.1],"cross"],
-      [null,[4.8],[11.3],[6.4],null,[24.1],"cross"],
-      [null,[6.4],[12.9],[6.4],null,[25.7],"cross"],
-      [null,[6.4],[12.9],[8.1],null,[19.3],"cross"],
-      [null,[6.4],[14.5],[8.1],null,[29],"cross"],
-      [null,[8.1],[14.5],[8.1],null,[22.5],"cross"],
-      [null,[8.1],[16.1],[8.1],null,[32.2],"cross"],
-      [null,[8.1],[12.9],[6.4],null,[19.3],"cross"],
-      [null,[6.4],[9.7],[4.8],null,[12.9],"cross"],
-      [null,[4.8],[6.4],[3.2],null,null,"marathon"],
-    ];
+  if (status === "loading") return e("div", { style: { padding: 60, textAlign: "center", color: "#6B7280" } },
+    e("div", { style: { fontSize: 40, marginBottom: 16 } }, "🏃"),
+    e("div", null, "Cargando tu progreso...")
+  );
 
-    const DAYS = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+  return e("div", { style: { fontFamily: "'Open Sans', sans-serif", color: "#111", padding: "8px 0", maxWidth: 720 } },
 
-    const TYPE_CFG = {
-      run:      { bg:"#EEF2FF", color:"#3730A3", border:"#A5B4FC", icon:"🏃", label:"Correr" },
-      cross:    { bg:"#ECFDF5", color:"#065F46", border:"#6EE7B7", icon:"🚴", label:"Cross" },
-      recover:  { bg:"#FEF3C7", color:"#92400E", border:"#FCD34D", icon:"🩹", label:"Recover" },
-      race:     { bg:"#FDF2F8", color:"#9D174D", border:"#F9A8D4", icon:"🏅", label:"Carrera" },
-      marathon: { bg:"#F5F3FF", color:"#5B21B6", border:"#C4B5FD", icon:"🏆", label:"Maratón" },
-      pilates:  { bg:"#FFF7ED", color:"#92400E", border:"#FCD34D", icon:"🧘", label:"Pilates" },
-      rest:     { bg:"#F9FAFB", color:"#6B7280", border:"#E5E7EB", icon:"💤", label:"Descanso" },
-      half:     { bg:"#FDF2F8", color:"#9D174D", border:"#F9A8D4", icon:"🏅", label:"Media Maratón" },
-    };
+    // HERO
+    e("div", { style: { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: "20px 22px", marginBottom: 14, display: "flex", flexDirection: "column", gap: 14 } },
+      e("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" } },
+        e("div", null,
+          e("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 } },
+            e("span", { style: { fontSize: 26 } }, "🏁"),
+            e("h1", { style: { fontSize: 24, fontWeight: 600, margin: 0, letterSpacing: "-0.5px" } }, "Maratón de Viña del Mar 2026")
+          ),
+          e("p", { style: { fontSize: 12, color: "#6B7280", margin: 0 } }, "Plan Hal Higdon Novice 1 · 21 semanas · Carrera: 4 oct 2026")
+        ),
+        e("div", { style: { background: "#EEF2FF", border: "1px solid #A5B4FC", borderRadius: 10, padding: "8px 16px", textAlign: "center", minWidth: 80 } },
+          e("div", { style: { fontSize: 22, fontWeight: 600, color: "#3730A3", lineHeight: 1 } }, daysLeft),
+          e("div", { style: { fontSize: 11, color: "#4338CA", marginTop: 2 } }, "días restantes")
+        )
+      ),
+      e("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 } },
+        ...[
+          { icon: "📆", val: `Semana ${CURRENT_WEEK}`, sub: fmtRange(CURRENT_WEEK - 1), accent: "#6366F1", abg: "#EEF2FF", aborder: "#A5B4FC" },
+          { icon: "✅", val: `${totalChecked} / ${totalTasks}`, sub: "actividades registradas", accent: "#059669", abg: "#ECFDF5", aborder: "#6EE7B7" },
+          { icon: "🗓️", val: `${weeksCompleted} / 21`, sub: "semanas completas", accent: "#D97706", abg: "#FFFBEB", aborder: "#FCD34D" },
+        ].map(({ icon, val, sub, accent, abg, aborder }) =>
+          e("div", { key: sub, style: { background: abg, border: `1px solid ${aborder}`, borderRadius: 10, padding: "12px 14px", minHeight: 80 } },
+            e("div", { style: { fontSize: 18, marginBottom: 4 } }, icon),
+            e("div", { style: { fontSize: 17, fontWeight: 600, color: accent, whiteSpace: "nowrap" } }, val),
+            e("div", { style: { fontSize: 11, color: accent, opacity: 0.75, marginTop: 2 } }, sub)
+          )
+        )
+      ),
+      e("div", null,
+        e("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } },
+          e("span", { style: { fontSize: 12, color: "#6B7280", fontWeight: 500 } }, "Progreso total del plan"),
+          e("span", { style: { fontSize: 12, fontWeight: 600, color: "#6366F1" } }, `${overallPct}%`)
+        ),
+        e("div", { style: { height: 8, background: "#F3F4F6", borderRadius: 4, overflow: "hidden", border: "1px solid #E5E7EB" } },
+          e("div", { style: { width: `${overallPct}%`, height: "100%", background: overallPct === 100 ? "#10B981" : "#6366F1", borderRadius: 4, transition: "width 0.4s" } })
+        )
+      )
+    ),
 
-    function mk(id, type, label) { return { id, type, label }; }
+    // WEEK SELECTOR
+    e("div", { style: { display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12, minHeight: 36, alignItems: "flex-start", alignContent: "flex-start" } },
+      ...RAW_PLAN.map((_, wi) => {
+        const wt = plan[wi].flat();
+        const full = isWeekComplete(wt, done);
+        const isActive = wi === activeWeek;
+        const isCurrent = wi === CURRENT_WEEK - 1;
+        return e("button", {
+          key: wi,
+          onClick: () => setActiveWeek(wi),
+          style: { padding: "5px 9px", borderRadius: 7, fontSize: 12, cursor: "pointer", border: isActive ? "2px solid #6366F1" : "1px solid #E5E7EB", background: full ? "#ECFDF5" : isActive ? "#EEF2FF" : "#fff", color: full ? "#065F46" : isActive ? "#4338CA" : "#6B7280", fontWeight: isCurrent ? 700 : 400, transition: "all 0.15s" }
+        }, `S${wi + 1}${full ? " ok" : isCurrent ? " *" : ""}`)
+      })
+    ),
 
-    function buildWeek(wi) {
-      const row = RAW_PLAN[wi];
-      const special = row[6];
-      const days = [];
-      for (let d = 0; d < 7; d++) {
-        if (special === "empty") { days.push([]); continue; }
-        const tasks = [];
-        const val = row[d];
-        if (d === 0) { tasks.push(mk(`w${wi}d${d}rest`, "rest", "Descanso")); }
-        else if (d === 1) {
-          tasks.push(mk(`w${wi}d${d}pilates`, "pilates", "Pilates"));
-          if (val && val[0]) tasks.push(mk(`w${wi}d${d}run`, "run", `Correr ${adjustDist(val[0])} km`));
-        } else if (d === 2) {
-          if (val && val[0]) tasks.push(mk(`w${wi}d${d}run`, "run", `Correr ${adjustDist(val[0])} km`));
-        } else if (d === 3) {
-          if (val && val[0]) tasks.push(mk(`w${wi}d${d}run`, "run", `Correr ${adjustDist(val[0])} km`));
-        } else if (d === 4) {
-          tasks.push(mk(`w${wi}d${d}pilates`, "pilates", "Pilates"));
-          tasks.push(mk(`w${wi}d${d}rest`, "rest", "Descanso"));
-        } else if (d === 5) {
-          if (val && val[0]) tasks.push(mk(`w${wi}d${d}run`, "run", `Correr ${adjustDist(val[0])} km`));
-          else tasks.push(mk(`w${wi}d${d}rest`, "rest", "Descanso"));
-        } else if (d === 6) {
-          if (special === "cross") {
-            const km = val && val[0] ? adjustDist(val[0]) : null;
-            tasks.push(mk(`w${wi}d${d}cross`, "cross", km ? `Cross ${km} km` : "Cross-training"));
-          } else if (special === "half") tasks.push(mk(`w${wi}d${d}race`, "half", "Media Maratón"));
-          else if (special === "marathon") tasks.push(mk(`w${wi}d${d}race`, "marathon", "¡Maratón!"));
-        }
-        days.push(tasks);
-      }
-      return days;
-    }
+    // WEEK PROGRESS
+    e("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 14, background: "#F9FAFB", borderRadius: 10, padding: "10px 14px", minHeight: 44 } },
+      e("div", { style: { whiteSpace: "nowrap" } },
+        e("span", { style: { fontSize: 13, fontWeight: 600, color: "#111" } }, `Semana ${activeWeek + 1}`),
+        e("span", { style: { fontSize: 11, color: "#6B7280", marginLeft: 6 } }, fmtRange(activeWeek))
+      ),
+      e("div", { style: { flex: 1, height: 7, background: "#fff", borderRadius: 4, overflow: "hidden", border: "1px solid #E5E7EB" } },
+        e("div", { style: { width: `${wPct}%`, height: "100%", background: wPct === 100 ? "#10B981" : "#6366F1", borderRadius: 4, transition: "width 0.4s" } })
+      ),
+      e("span", { style: { fontSize: 13, fontWeight: 600, minWidth: 44, textAlign: "right", color: wPct === 100 ? "#059669" : "#111" } }, `${wPct}%`)
+    ),
 
-    const INITIAL_PLAN = RAW_PLAN.map((_, wi) => buildWeek(wi));
+    // DAY GRID
+    e("div", { style: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 } },
+      ...DAYS.map((day, di) => {
+        const tasks = plan[activeWeek][di] || [];
+        const dayDone = tasks.length > 0 && tasks.every(t => done[t.id] === "done" || done[t.id] === "missed");
+        const dayDate = new Date(PLAN_START);
+        dayDate.setDate(dayDate.getDate() + activeWeek * 7 + di);
+        return e("div", {
+          key: di,
+          className: "drop-zone",
+          onDragOver: onDragOver,
+          onDragLeave: onDragLeave,
+          onDrop: ev => onDrop(activeWeek, di, ev),
+          style: { border: dayDone ? "1px solid #6EE7B7" : "1px solid #E5E7EB", background: dayDone ? "#F0FDF4" : "#fff" }
+        },
+          e("div", { style: { textAlign: "center", marginBottom: 2 } },
+            e("div", { style: { fontSize: 11, fontWeight: 600, color: dayDone ? "#059669" : "#6B7280" } }, `${day}${dayDone ? " ok" : ""}`),
+            e("div", { style: { fontSize: 10, color: "#9CA3AF" } }, `${dayDate.getDate()} ${dayDate.toLocaleDateString("es-CL", { month: "short" })}`)
+          ),
+          ...tasks.map((task, ti) => {
+            const cfg = TYPE_CFG[task.type] || TYPE_CFG.rest;
+            const taskStatus = done[task.id];
+            const isEdit = editing && editing.wi === activeWeek && editing.di === di && editing.ti === ti;
+            const cardBg = taskStatus === "done" ? "#F0FDF4" : taskStatus === "missed" ? "#FFFBEB" : cfg.bg;
+            const cardColor = taskStatus === "done" ? "#065F46" : taskStatus === "missed" ? "#92400E" : cfg.color;
+            const cardBorder = taskStatus === "done" ? "#6EE7B7" : taskStatus === "missed" ? "#FCD34D" : cfg.border;
+            const statusIcon = taskStatus === "done" ? "✓" : taskStatus === "missed" ? "⚠" : "○";
+            return e("div", {
+              key: task.id,
+              className: "task-card",
+              draggable: !isEdit,
+              onDragStart: !isEdit ? ev => onDragStart(activeWeek, di, ti, ev) : undefined,
+              onDragEnd: !isEdit ? onDragEnd : undefined,
+              style: { background: cardBg, color: cardColor, border: `1px solid ${cardBorder}`, cursor: isEdit ? "default" : "grab" }
+            },
+              e("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 3 } },
+                e("span", { style: { fontSize: 13 } }, cfg.icon),
+                e("span", {
+                  onClick: ev => { ev.stopPropagation(); cycleStatus(task.id); },
+                  style: { fontSize: 12, cursor: "pointer", lineHeight: 1, width: 18, textAlign: "center", display: "inline-block" }
+                }, statusIcon)
+              ),
+              isEdit
+                ? e("input", {
+                    autoFocus: true,
+                    value: editVal,
+                    placeholder: "Nombre...",
+                    onChange: ev => setEditVal(ev.target.value),
+                    onBlur: () => commitEdit(activeWeek, di, ti),
+                    onKeyDown: ev => {
+                      if (ev.key === "Enter") commitEdit(activeWeek, di, ti);
+                      if (ev.key === "Escape") { if (!task.label) deleteTask(activeWeek, di, ti); setEditing(null); }
+                    },
+                    onClick: ev => ev.stopPropagation(),
+                    style: { fontSize: 11, border: "none", borderBottom: "1px solid #6366F1", background: "transparent", outline: "none", width: "100%", color: "inherit", fontFamily: "'Open Sans', sans-serif" }
+                  })
+                : e("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2 } },
+                    e("div", {
+                      onClick: ev => { ev.stopPropagation(); setEditVal(task.label); setEditing({ wi: activeWeek, di, ti }); },
+                      style: { fontSize: 11, lineHeight: 1.3, wordBreak: "break-word", cursor: "text", flex: 1, textDecoration: taskStatus === "missed" ? "line-through" : "none" }
+                    }, task.label),
+                    e("span", {
+                      onClick: ev => { ev.stopPropagation(); deleteTask(activeWeek, di, ti); },
+                      style: { fontSize: 11, opacity: 0.35, cursor: "pointer", lineHeight: 1.3, flexShrink: 0 }
+                    }, "x")
+                  )
+            );
+          }),
+          e("button", {
+            onClick: () => addTask(activeWeek, di),
+            onMouseEnter: ev => { ev.target.style.borderColor = "#6366F1"; ev.target.style.color = "#6366F1"; },
+            onMouseLeave: ev => { ev.target.style.borderColor = "#D1D5DB"; ev.target.style.color = "#9CA3AF"; },
+            style: { marginTop: 2, padding: "3px 0", width: "100%", border: "1px dashed #D1D5DB", borderRadius: 6, background: "transparent", color: "#9CA3AF", fontSize: 14, cursor: "pointer", transition: "all 0.15s" }
+          }, "+")
+        );
+      })
+    ),
 
-    function inferType(label) {
-      const l = label.toLowerCase();
-      if (l.includes("recover") || l.includes("recupera") || l.includes("lesion")) return "recover";
-      if (l.includes("pilates")) return "pilates";
-      if (l.includes("descanso") || l.includes("rest") || l.includes("libre")) return "rest";
-      if (l.includes("maraton") || l.includes("42")) return "marathon";
-      if (l.includes("media maraton") || l.includes("21")) return "half";
-      if (l.includes("cross") || l.includes("bici") || l.includes("nadar") || l.includes("natacion") || l.includes("yoga") || l.includes("eliptica")) return "cross";
-      if (l.includes("correr") || l.includes("carrera") || l.includes("run") || l.includes("trote") || l.includes("km")) return "run";
-      return null;
-    }
+    // FOOTER
+    e("div", { style: { marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" } },
+      ...Object.entries(TYPE_CFG).map(([k, v]) =>
+        e("span", { key: k, style: { fontSize: 11, color: "#6B7280", display: "flex", alignItems: "center", gap: 3 } },
+          e("span", null, v.icon), e("span", null, v.label)
+        )
+      ),
+      e("span", { style: { fontSize: 11, color: "#92400E", display: "flex", alignItems: "center", gap: 3 } },
+        e("span", null, "⚠"), e("span", null, "No hecha")
+      )
+    ),
+    e("p", { style: { fontSize: 11, color: "#9CA3AF", marginTop: 6, marginBottom: 0 } },
+      "Arrastra para mover · Toca el icono para cambiar estado · Toca el nombre para editar"
+    ),
+    e("p", { style: { fontSize: 11, height: 18, marginTop: 4, marginBottom: 0, color: status === "saved" ? "#059669" : "#9CA3AF" } },
+      statusLabel
+    )
+  );
+}
 
-    function isWeekComplete(tasks, done) {
-      return tasks.length > 0 && tasks.every(t => done[t.id] === "done" || done[t.id] === "missed");
-    }
-
-    function App() {
-      const [plan, setPlan] = useState(INITIAL_PLAN);
-      const [done, setDone] = useState({});
-      const [activeWeek, setActiveWeek] = useState(CURRENT_WEEK - 1);
-      const [editing, setEditing] = useState(null);
-      const [status, setStatus] = useState("loading");
-      const dragSrc = useRef(null);
-      const saveTimer = useRef(null);
-
-      useEffect(() => {
-        (async () => {
-          const [sp, sd] = await Promise.all([dbGet("plan"), dbGet("done")]);
-          if (sp && sp.length === INITIAL_PLAN.length) setPlan(sp);
-          else if (sp && sp.length !== INITIAL_PLAN.length) {
-            setPlan(INITIAL_PLAN);
-            dbSet("plan", INITIAL_PLAN);
-          }
-          if (sd) setDone(sd);
-          setStatus("ready");
-        })();
-      }, []);
-
-      const save = (np, nd) => {
-        setStatus("saving");
-        clearTimeout(saveTimer.current);
-        saveTimer.current = setTimeout(async () => {
-          await Promise.all([dbSet("plan", np), dbSet("done", nd)]);
-          setStatus("saved");
-          setTimeout(() => setStatus("ready"), 2000);
-        }, 800);
-      };
-
-      const cycleStatus = (id) => {
-        const cur = done[id];
-        const next = cur === "done" ? "missed" : cur === "missed" ? undefined : "done";
-        const nd = { ...done, [id]: next };
-        setDone(nd);
-        save(plan, nd);
-      };
-
-      const deleteTask = (wi, di, ti) => {
-        const next = plan.map(w => w.map(d => [...d]));
-        next[wi][di].splice(ti, 1);
-        setPlan(next);
-        save(next, done);
-      };
-
-      const addTask = (wi, di) => {
-        const id = `w${wi}d${di}custom${Date.now()}`;
-        const next = plan.map(w => w.map(d => [...d]));
-        next[wi][di] = [...next[wi][di], { id, type: "run", label: "" }];
-        setPlan(next);
-        setEditing({ wi, di, ti: next[wi][di].length - 1 });
-      };
-
-      const renameTask = (wi, di, ti, label) => {
-        const next = plan.map(w => w.map(d => d.map(t => ({ ...t }))));
-        if (!label.trim()) {
-          next[wi][di].splice(ti, 1);
-        } else {
-          const detectedType = inferType(label);
-          next[wi][di][ti].label = label;
-          if (detectedType) next[wi][di][ti].type = detectedType;
-        }
-        setPlan(next);
-        save(next, done);
-        setEditing(null);
-      };
-
-      const onDragStart = (wi, di, ti) => (e) => {
-        dragSrc.current = { wi, di, ti };
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", `${wi},${di},${ti}`);
-        e.currentTarget.style.opacity = "0.4";
-      };
-      const onDragEnd = (e) => { e.currentTarget.style.opacity = "1"; };
-      const onDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; e.currentTarget.classList.add("drag-over"); };
-      const onDragLeave = (e) => { if (!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.classList.remove("drag-over"); };
-      const onDrop = (wi, di) => (e) => {
-        e.preventDefault();
-        e.currentTarget.classList.remove("drag-over");
-        const raw = e.dataTransfer.getData("text/plain");
-        let src = dragSrc.current;
-        if (!src && raw) { const p = raw.split(",").map(Number); src = { wi: p[0], di: p[1], ti: p[2] }; }
-        if (!src || (src.wi === wi && src.di === di)) return;
-        const next = plan.map(w => w.map(d => [...d]));
-        const [task] = next[src.wi][src.di].splice(src.ti, 1);
-        next[wi][di] = [...next[wi][di], task];
-        setPlan(next);
-        save(next, done);
-        dragSrc.current = null;
-      };
-
-      const fmtRange = (wi) => {
-        const s = new Date(PLAN_START); s.setDate(s.getDate() + wi * 7);
-        const e = new Date(s); e.setDate(e.getDate() + 6);
-        const fmt = d => d.toLocaleDateString("es-CL", { day: "numeric", month: "short" });
-        return `${fmt(s)} - ${fmt(e)}`;
-      };
-
-      const today = new Date();
-      const daysLeft = Math.max(0, Math.ceil((RACE_DATE - today) / 86400000));
-      const allTasks = plan.flat(2);
-      const totalTasks = allTasks.length;
-      const totalChecked = allTasks.filter(t => done[t.id] === "done" || done[t.id] === "missed").length;
-      const overallPct = totalTasks ? Math.round((totalChecked / totalTasks) * 100) : 0;
-      const wTasks = plan[activeWeek].flat();
-      const wDone = wTasks.filter(t => done[t.id] === "done" || done[t.id] === "missed").length;
-      const wPct = wTasks.length ? Math.round((wDone / wTasks.length) * 100) : 0;
-      const weeksCompleted = plan.filter((wk) => isWeekComplete(wk.flat(), done)).length;
-      const statusLabel = { loading: "Cargando...", saving: "Guardando...", saved: "Guardado", ready: "" }[status];
-
-      if (status === "loading") return (
-        <div style={{ padding: 60, textAlign: "center", color: "#6B7280", fontFamily: "'Open Sans', sans-serif" }}>
-          <div style={{ fontSize: 40, marginBottom: 16 }}>🏃</div>
-          <div>Cargando tu progreso...</div>
-        </div>
-      );
-
-      return (
-        <div style={{ fontFamily: "'Open Sans', sans-serif", color: "#111", padding: "8px 0", maxWidth: 720 }}>
-
-          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: "20px 22px", marginBottom: 14, display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 26 }}>🏁</span>
-                  <h1 style={{ fontSize: 24, fontWeight: 600, margin: 0, fontFamily: "'Open Sans', sans-serif", letterSpacing: "-0.5px" }}>Maratón de Viña del Mar 2026</h1>
-                </div>
-                <p style={{ fontSize: 12, color: "#6B7280", margin: 0 }}>Plan Hal Higdon Novice 1 · 21 semanas · Carrera: 4 oct 2026</p>
-              </div>
-              <div style={{ background: "#EEF2FF", border: "1px solid #A5B4FC", borderRadius: 10, padding: "8px 16px", textAlign: "center", minWidth: 80 }}>
-                <div style={{ fontSize: 22, fontWeight: 600, color: "#3730A3", lineHeight: 1 }}>{daysLeft}</div>
-                <div style={{ fontSize: 11, color: "#4338CA", marginTop: 2 }}>días restantes</div>
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
-              {[
-                { icon: "📆", val: `Semana ${CURRENT_WEEK}`, sub: fmtRange(CURRENT_WEEK - 1), accent: "#6366F1", abg: "#EEF2FF", aborder: "#A5B4FC" },
-                { icon: "✅", val: `${totalChecked} / ${totalTasks}`, sub: "actividades registradas", accent: "#059669", abg: "#ECFDF5", aborder: "#6EE7B7" },
-                { icon: "🗓️", val: `${weeksCompleted} / 21`, sub: "semanas completas", accent: "#D97706", abg: "#FFFBEB", aborder: "#FCD34D" },
-              ].map(({ icon, val, sub, accent, abg, aborder }) => (
-                <div key={sub} style={{ background: abg, border: `1px solid ${aborder}`, borderRadius: 10, padding: "12px 14px", minHeight: 80 }}>
-                  <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
-                  <div style={{ fontSize: 17, fontWeight: 600, color: accent, whiteSpace: "nowrap" }}>{val}</div>
-                  <div style={{ fontSize: 11, color: accent, opacity: 0.75, marginTop: 2 }}>{sub}</div>
-                </div>
-              ))}
-            </div>
-
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 500 }}>Progreso total del plan</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#6366F1" }}>{overallPct}%</span>
-              </div>
-              <div style={{ height: 8, background: "#F3F4F6", borderRadius: 4, overflow: "hidden", border: "1px solid #E5E7EB" }}>
-                <div style={{ width: `${overallPct}%`, height: "100%", background: overallPct === 100 ? "#10B981" : "#6366F1", borderRadius: 4, transition: "width 0.4s" }} />
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12, minHeight: 36, alignItems: "flex-start", alignContent: "flex-start" }}>
-            {RAW_PLAN.map((_, wi) => {
-              const wt = plan[wi].flat();
-              const full = isWeekComplete(wt, done);
-              const isActive = wi === activeWeek;
-              const isCurrent = wi === CURRENT_WEEK - 1;
-              return (
-                <button key={wi} onClick={() => setActiveWeek(wi)} style={{
-                  padding: "5px 9px", borderRadius: 7, fontSize: 12, cursor: "pointer",
-                  border: isActive ? "2px solid #6366F1" : "1px solid #E5E7EB",
-                  background: full ? "#ECFDF5" : isActive ? "#EEF2FF" : "#fff",
-                  color: full ? "#065F46" : isActive ? "#4338CA" : "#6B7280",
-                  fontWeight: isCurrent ? 700 : 400, transition: "all 0.15s",
-                }}>S{wi + 1}{full ? " ok" : isCurrent ? " *" : ""}</button>
-              );
-            })}
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, background: "#F9FAFB", borderRadius: 10, padding: "10px 14px", minHeight: 44 }}>
-            <div style={{ whiteSpace: "nowrap" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>Semana {activeWeek + 1}</span>
-              <span style={{ fontSize: 11, color: "#6B7280", marginLeft: 6 }}>{fmtRange(activeWeek)}</span>
-            </div>
-            <div style={{ flex: 1, height: 7, background: "#fff", borderRadius: 4, overflow: "hidden", border: "1px solid #E5E7EB" }}>
-              <div style={{ width: `${wPct}%`, height: "100%", background: wPct === 100 ? "#10B981" : "#6366F1", borderRadius: 4, transition: "width 0.4s" }} />
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 600, minWidth: 44, textAlign: "right", color: wPct === 100 ? "#059669" : "#111" }}>{wPct}%</span>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
-            {DAYS.map((day, di) => {
-              const tasks = plan[activeWeek][di] || [];
-              const dayDone = tasks.length > 0 && tasks.every(t => done[t.id] === "done" || done[t.id] === "missed");
-              const dayDate = new Date(PLAN_START);
-              dayDate.setDate(dayDate.getDate() + activeWeek * 7 + di);
-              return (
-                <div key={di}
-                  className="drop-zone"
-                  onDragOver={onDragOver}
-                  onDragLeave={onDragLeave}
-                  onDrop={onDrop(activeWeek, di)}
-                  style={{ border: dayDone ? "1px solid #6EE7B7" : "1px solid #E5E7EB", background: dayDone ? "#F0FDF4" : "#fff" }}
-                >
-                  <div style={{ textAlign: "center", marginBottom: 2 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: dayDone ? "#059669" : "#6B7280" }}>{day}{dayDone ? " ok" : ""}</div>
-                    <div style={{ fontSize: 10, color: "#9CA3AF" }}>{dayDate.getDate()} {dayDate.toLocaleDateString("es-CL", { month: "short" })}</div>
-                  </div>
-
-                  {tasks.map((task, ti) => {
-                    const cfg = TYPE_CFG[task.type] || TYPE_CFG.rest;
-                    const taskStatus = done[task.id];
-                    const isEditing = editing && editing.wi === activeWeek && editing.di === di && editing.ti === ti;
-                    const cardBg = taskStatus === "done" ? "#F0FDF4" : taskStatus === "missed" ? "#FFFBEB" : cfg.bg;
-                    const cardColor = taskStatus === "done" ? "#065F46" : taskStatus === "missed" ? "#92400E" : cfg.color;
-                    const cardBorder = taskStatus === "done" ? "#6EE7B7" : taskStatus === "missed" ? "#FCD34D" : cfg.border;
-                    const statusIcon = taskStatus === "done" ? "✓" : taskStatus === "missed" ? "⚠" : "○";
-                    return (
-                      <div key={task.id}
-                        className="task-card"
-                        draggable={!isEditing ? "true" : "false"}
-                        onDragStart={!isEditing ? onDragStart(activeWeek, di, ti) : undefined}
-                        onDragEnd={!isEditing ? onDragEnd : undefined}
-                        style={{ background: cardBg, color: cardColor, border: `1px solid ${cardBorder}`, cursor: isEditing ? "default" : "grab" }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 3 }}>
-                          <span style={{ fontSize: 13 }}>{cfg.icon}</span>
-                          <span
-                            onClick={(e) => { e.stopPropagation(); cycleStatus(task.id); }}
-                            style={{ fontSize: 12, cursor: "pointer", lineHeight: 1, width: 18, textAlign: "center", display: "inline-block" }}
-                          >{statusIcon}</span>
-                        </div>
-                        {isEditing ? (
-                          <input
-                            autoFocus
-                            defaultValue={task.label}
-                            placeholder="Nombre de la actividad..."
-                            onBlur={e => renameTask(activeWeek, di, ti, e.target.value)}
-                            onKeyDown={e => { if (e.key === "Enter") renameTask(activeWeek, di, ti, e.target.value); if (e.key === "Escape") { if (!task.label) deleteTask(activeWeek, di, ti); setEditing(null); } }}
-                            onClick={e => e.stopPropagation()}
-                            style={{ fontSize: 11, border: "none", borderBottom: "1px solid #6366F1", background: "transparent", outline: "none", width: "100%", color: "inherit", fontFamily: "'Open Sans', sans-serif" }}
-                          />
-                        ) : (
-                          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2 }}>
-                            <div
-                              onClick={(e) => { e.stopPropagation(); setEditing({ wi: activeWeek, di, ti }); }}
-                              style={{ fontSize: 11, lineHeight: 1.3, wordBreak: "break-word", cursor: "text", flex: 1, textDecoration: taskStatus === "missed" ? "line-through" : "none" }}
-                            >{task.label}</div>
-                            <span
-                              onClick={(e) => { e.stopPropagation(); deleteTask(activeWeek, di, ti); }}
-                              style={{ fontSize: 11, opacity: 0.35, cursor: "pointer", lineHeight: 1.3, flexShrink: 0 }}
-                            >x</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  <button
-                    onClick={() => addTask(activeWeek, di)}
-                    onMouseEnter={e => { e.target.style.borderColor = "#6366F1"; e.target.style.color = "#6366F1"; }}
-                    onMouseLeave={e => { e.target.style.borderColor = "#D1D5DB"; e.target.style.color = "#9CA3AF"; }}
-                    style={{ marginTop: 2, padding: "3px 0", width: "100%", border: "1px dashed #D1D5DB", borderRadius: 6, background: "transparent", color: "#9CA3AF", fontSize: 14, cursor: "pointer", transition: "all 0.15s" }}
-                  >+</button>
-                </div>
-              );
-            })}
-          </div>
-
-          <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            {Object.entries(TYPE_CFG).map(([k, v]) => (
-              <span key={k} style={{ fontSize: 11, color: "#6B7280", display: "flex", alignItems: "center", gap: 3 }}>
-                <span>{v.icon}</span><span>{v.label}</span>
-              </span>
-            ))}
-            <span style={{ fontSize: 11, color: "#92400E", display: "flex", alignItems: "center", gap: 3 }}>
-              <span>⚠</span><span>No hecha</span>
-            </span>
-          </div>
-          <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6, marginBottom: 0 }}>
-            Arrastra para mover · Toca el icono para cambiar estado · Toca el nombre para editar
-          </p>
-          <p style={{ fontSize: 11, height: 18, marginTop: 4, marginBottom: 0, color: status === "saved" ? "#059669" : "#9CA3AF" }}>
-            {statusLabel}
-          </p>
-        </div>
-      );
-    }
-
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-  </script>
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
 </body>
 </html>
