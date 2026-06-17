@@ -6,9 +6,9 @@
   <title>Maratón Viña del Mar 2026</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600&display=swap" />
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Open Sans', sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; justify-content: center; padding: 24px 16px; }
@@ -24,9 +24,7 @@
 <body>
   <div id="root"></div>
   <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
-
-    const SUPABASE_URL = "https://ssrvbprgkwaoxzrvpwym.supabase.co";
+    const { useState, useEffect, useRef } = React; = "https://ssrvbprgkwaoxzrvpwym.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzcnZicHJna3dhb3h6cnZwd3ltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzOTYzNzAsImV4cCI6MjA5NDk3MjM3MH0.NMfB1mJRJEdBRqynYR4aBq1non82o9htoIi2jKeHsf4";
 
     async function dbGet(key) {
